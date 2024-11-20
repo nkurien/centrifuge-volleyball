@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Volleyball Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #000;
+        }
+        canvas {
+            border: 1px solid #333;
+            background-color: #000;
+        }
+        #game-container {
+            text-align: center;
+        }
+        .game-info {
+            color: white;
+            font-family: sans-serif;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Game sounds -->
+    <audio id="hitSound" preload="auto">
+        <source src="assets/hit.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="oopsSound" preload="auto">
+        <source src="assets/oops.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="winSound" preload="auto">
+        <source src="assets/win.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="game-container">
+        <div class="game-info">
+            <span id="fps">0</span> fps
+        </div>
+        <canvas id="gameCanvas" width="450" height="450">
+            Your browser does not support the HTML5 canvas tag.
+        </canvas>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
