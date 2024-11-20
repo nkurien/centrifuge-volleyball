@@ -2,7 +2,6 @@
 const CYLINDER_RADIUS = 200;
 const PLAYER_COLORS = {
     YELLOW: { r: 255, g: 255, b: 0 },
-    BLUE: { r: 0, g: 255, b: 255 }
 };
 
 // Key codes
@@ -10,15 +9,48 @@ const KEYS = {
     LEFT: 37,  // Left arrow
     RIGHT: 39, // Right arrow
     UP: 38,    // Up arrow
-    A: 65,
-    D: 68,
-    W: 87,
-    SPACE: 32
 };
+
+class Player {
+    constructor(game) {
+        this.game = game;
+        this.angle = 0;
+        this.radius = 40;
+        this.color = PLAYER_COLORS.YELLOW;
+        this.angularVelocity = 0;
+        this.maxVelocity = 0.2;
+        this.acceleration = 0.01;
+        this.leftPressed = false;
+        this.rightPressed = false;
+    }
+
+    update() {
+        // Handle movement
+        if (this.leftPressed && this.angularVelocity > -this.maxVelocity) {
+            this.angularVelocity += this.acceleration;
+        }
+        if (this.rightPressed && this.angularVelocity < this.maxVelocity) {
+            this.angularVelocity -= this.acceleration;
+        }
+
+        // Update position
+        this.angle += this.angularVelocity;
+        this.angularVelocity *= 0.9; // friction
+    }
+
+    draw(ctx) {
+        const x = CYLINDER_RADIUS * Math.cos(this.angle + this.game.cylinderAngle);
+        const y = CYLINDER_RADIUS * Math.sin(this.angle + this.game.cylinderAngle);
+
+        ctx.beginPath();
+        ctx.arc(x, y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgb(${this.color.r},${this.color.g},${this.color.b})`;
+        ctx.fill();
+    }
+}
 
 class Game {
     constructor() {
-        // Get canvas and context
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         
@@ -26,13 +58,10 @@ class Game {
         this.cylinderAngle = 0;
         this.camAngle = 0;
         this.angVelocity = 0.02;
-        this.camAngVelocity = 0.02;
         this.gameStarted = false;
-        this.gameScore = 25;
         
-        // Arrays to hold game objects
-        this.players = [];
-        this.balls = [];
+        // Create player
+        this.player = new Player(this);
         
         // Center the coordinate system
         this.ctx.translate(this.canvas.width/2, this.canvas.height/2);
@@ -41,76 +70,61 @@ class Game {
         document.addEventListener('keydown', this.handleKeyDown.bind(this));
         document.addEventListener('keyup', this.handleKeyUp.bind(this));
         
-        // Start the game loop
-        this.lastTime = 0;
-        this.fps = 0;
-        this.frameCount = 0;
-        this.lastFpsUpdate = 0;
-    }
-
-    // Main game loop
-    gameLoop(currentTime) {
-        // Calculate delta time and FPS
-        const deltaTime = currentTime - this.lastTime;
-        this.lastTime = currentTime;
-        
-        this.frameCount++;
-        if (currentTime - this.lastFpsUpdate > 1000) {
-            this.fps = Math.round((this.frameCount * 1000) / (currentTime - this.lastFpsUpdate));
-            document.getElementById('fps').textContent = this.fps;
-            this.lastFpsUpdate = currentTime;
-            this.frameCount = 0;
-        }
-
-        // Clear canvas
-        this.ctx.clearRect(-this.canvas.width/2, -this.canvas.height/2, 
-                          this.canvas.width, this.canvas.height);
-
-        if (this.gameStarted) {
-            this.update(deltaTime);
-            this.draw();
-        } else {
-            this.showIntro();
-        }
-
-        // Request next frame
-        requestAnimationFrame(this.gameLoop.bind(this));
-    }
-
-    showIntro() {
-        const ctx = this.ctx;
-        ctx.fillStyle = '#00C0FF';
-        ctx.font = '30px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('CENTRIFUGE VOLLEYBALL', 0, -180);
-
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '12px sans-serif';
-        ctx.fillText('Press SPACE to start', 0, 0);
-        ctx.fillText('Use LEFT/RIGHT arrows and UP to play', 0, 20);
+        // Start immediately for testing
+        this.gameStarted = true;
     }
 
     handleKeyDown(event) {
-        if (!this.gameStarted && event.keyCode === KEYS.SPACE) {
-            this.startGame();
+        switch(event.keyCode) {
+            case KEYS.LEFT:
+                this.player.leftPressed = true;
+                break;
+            case KEYS.RIGHT:
+                this.player.rightPressed = true;
+                break;
         }
     }
 
     handleKeyUp(event) {
-        // Will handle key up events
+        switch(event.keyCode) {
+            case KEYS.LEFT:
+                this.player.leftPressed = false;
+                break;
+            case KEYS.RIGHT:
+                this.player.rightPressed = false;
+                break;
+        }
     }
 
-    startGame() {
-        this.gameStarted = true;
-        // Initialize players and ball (we'll implement this later)
-    }
-
-    update(deltaTime) {
-        // Will handle game state updates
+    update() {
+        if (this.gameStarted) {
+            this.cylinderAngle += this.angVelocity;
+            this.player.update();
+        }
     }
 
     draw() {
-        // Will handle drawing the game state
+        const ctx = this.ctx;
+        
+        // Clear the canvas
+        ctx.clearRect(-this.canvas.width/2, -this.canvas.height/2, 
+                     this.canvas.width, this.canvas.height);
+
+        // Draw the cylinder
+        ctx.beginPath();
+        ctx.arc(0, 0, CYLINDER_RADIUS, 0, Math.PI * 2);
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 10;
+        ctx.stroke();
+
+        // Draw the player
+        this.player.draw(ctx);
+    }
+
+    gameLoop(currentTime) {
+        this.update();
+        this.draw();
+        requestAnimationFrame(this.gameLoop.bind(this));
     }
 }
 
