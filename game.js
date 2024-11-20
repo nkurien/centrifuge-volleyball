@@ -42,14 +42,15 @@ class Ball {
         this.y = 0;
         this.angle = Math.random() * 2 * Math.PI;
         
-        // Initial velocity in random direction
-        const initialSpeed = 2;
+        // Reduced initial speed
+        const initialSpeed = 1.5;
         this.xVelocity = initialSpeed * Math.cos(this.angle);
         this.yVelocity = initialSpeed * Math.sin(this.angle);
         
         this.color = '#FFFFFF';
-        this.hitPower = 6;
+        this.hitPower = 3; // Reduced from 6
         this.bounceEnergy = 0.95;
+        this.dragFactor = 0.995; // Increased drag (was 0.999)
     }
 
     update() {
@@ -57,44 +58,39 @@ class Ball {
         this.x += this.xVelocity;
         this.y += this.yVelocity;
 
-        // Very slight drag
-        this.xVelocity *= 0.999;
-        this.yVelocity *= 0.999;
+        // Increased drag effect
+        this.xVelocity *= this.dragFactor;
+        this.yVelocity *= this.dragFactor;
 
         // Check cylinder collision
         const distanceFromCenter = Math.sqrt(this.x * this.x + this.y * this.y);
         if (distanceFromCenter >= CYLINDER_RADIUS - this.radius) {
-            // Calculate collision vectors
             const collisionVector = new Vector(this.x, this.y);
             const velocity = new Vector(this.xVelocity, this.yVelocity);
             
-            // Normalize collision vector
             const collisionMagnitude = collisionVector.magnitude();
             const normalizedCollision = new Vector(
                 collisionVector.x / collisionMagnitude,
                 collisionVector.y / collisionMagnitude
             );
 
-            // Calculate reflection
             const dot = velocity.dot(normalizedCollision);
             const reflection = normalizedCollision.mult(2 * dot);
             
-            // Apply bounce with energy conservation
             this.xVelocity = (velocity.x - reflection.x) * this.bounceEnergy;
             this.yVelocity = (velocity.y - reflection.y) * this.bounceEnergy;
 
-            // Add slight outward force to prevent sticking
-            const outwardForce = 0.5;
+            // Reduced outward force
+            const outwardForce = 0.3; // Reduced from 0.5
             this.xVelocity -= normalizedCollision.x * outwardForce;
             this.yVelocity -= normalizedCollision.y * outwardForce;
 
-            // Move ball to exact collision point to prevent multiple collisions
             this.x = (CYLINDER_RADIUS - this.radius - 1) * normalizedCollision.x;
             this.y = (CYLINDER_RADIUS - this.radius - 1) * normalizedCollision.y;
         }
 
-        // Add rotation influence
-        const rotationInfluence = 0.08;
+        // Slightly reduced rotation influence
+        const rotationInfluence = 0.06; // Reduced from 0.08
         const tangentialX = -Math.sin(this.game.cylinderAngle);
         const tangentialY = Math.cos(this.game.cylinderAngle);
         this.xVelocity += tangentialX * rotationInfluence;
@@ -109,7 +105,6 @@ class Ball {
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance < this.radius + this.game.player.radius) {
-            const collisionVector = new Vector(dx, dy);
             const normalizedCollision = new Vector(
                 dx / distance,
                 dy / distance
@@ -130,12 +125,14 @@ class Ball {
                 );
             }
 
-            // Combine velocities
-            const ballVelocity = new Vector(this.xVelocity, this.yVelocity);
-            const relativeVelocity = ballVelocity.subtract(playerVelocity);
+            // Calculate current ball speed
+            const currentSpeed = Math.sqrt(this.xVelocity * this.xVelocity + this.yVelocity * this.yVelocity);
             
-            // Calculate new velocity
-            const hitSpeed = this.hitPower + playerVelocity.magnitude() * 0.5;
+            // Combine base hit power with player velocity, but with reduced multipliers
+            const hitSpeed = this.hitPower + 
+                           playerVelocity.magnitude() * 0.3 + // Reduced from 0.5
+                           currentSpeed * 0.2; // Added to maintain some existing momentum
+
             this.xVelocity = normalizedCollision.x * hitSpeed;
             this.yVelocity = normalizedCollision.y * hitSpeed;
 
@@ -143,7 +140,6 @@ class Ball {
             this.x = this.game.player.x + (this.radius + this.game.player.radius + 1) * normalizedCollision.x;
             this.y = this.game.player.y + (this.radius + this.game.player.radius + 1) * normalizedCollision.y;
 
-            // Play hit sound
             const hitSound = document.getElementById('hitSound');
             if (hitSound) hitSound.play();
         }
