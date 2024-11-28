@@ -1,7 +1,7 @@
 // Constants
-const CYLINDER_RADIUS = 200;
+const CYLINDER_RADIUS = 280;
 const PLAYER_COLORS = {
-    YELLOW: { r: 255, g: 255, b: 0 },
+    YELLOW: { r: 255, g: 140, b: 0 },
 };
 
 // Key codes
@@ -181,6 +181,10 @@ class Player {
         this.xVelocity = 0;
         this.yVelocity = 0;
         this.jumpPower = 4;
+
+        this.lastHitTime = 0;
+        this.glowDuration = 1000; // ms
+        this.glowIntensity = 0;
     }
 
     jump() {
@@ -308,7 +312,7 @@ class Game {
         ctx.beginPath();
         ctx.arc(0, 0, CYLINDER_RADIUS, 0, Math.PI * 2);
         ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 10;
+        ctx.lineWidth = 4; // Reduced from 10
         ctx.stroke();
 
         // Draw the ball

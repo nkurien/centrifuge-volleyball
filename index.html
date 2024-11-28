@@ -1,52 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Volleyball Game</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Game</title>
     <style>
+        /* Reset and base styles */
         body {
             margin: 0;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            background: #0f172a;
+            color: #e2e8f0;
+            font-family: system-ui, -apple-system, sans-serif;
             min-height: 100vh;
-            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        canvas {
-            border: 1px solid #333;
-            background-color: #000;
-        }
+
         #game-container {
-            text-align: center;
+            position: relative;
+            margin: 2rem auto;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 1rem;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
         }
+
+        #gameCanvas {
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            background: #000;
+        }
+
         .game-info {
-            color: white;
-            font-family: sans-serif;
-            margin: 10px 0;
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+
+        #fps {
+            font-family: monospace;
+            font-weight: bold;
+            color: #22c55e;
+        }
+
+        @media (max-width: 768px) {
+            #game-container {
+                margin: 1rem;
+                padding: 0.5rem;
+            }
+            
+            #gameCanvas {
+                width: 100%;
+                height: auto;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Game sounds -->
-    <audio id="hitSound" preload="auto">
-        <source src="assets/hit.mp3" type="audio/mpeg">
-    </audio>
-    <audio id="oopsSound" preload="auto">
-        <source src="assets/oops.mp3" type="audio/mpeg">
-    </audio>
-    <audio id="winSound" preload="auto">
-        <source src="assets/win.mp3" type="audio/mpeg">
-    </audio>
-
     <div id="game-container">
         <div class="game-info">
-            <span id="fps">0</span> fps
+            <span id="fps">0</span> FPS
         </div>
-        <canvas id="gameCanvas" width="450" height="450">
+        <canvas id="gameCanvas" width="800" height="600">
             Your browser does not support the HTML5 canvas tag.
         </canvas>
     </div>
-
     <script src="game.js"></script>
 </body>
 </html>
