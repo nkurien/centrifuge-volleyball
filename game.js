@@ -248,28 +248,43 @@ class Ball {
 
     handlePoints() {
         if (this.grounded && this.pauseNum === -1 && !this.hit) {
+            // Play the "oops" sound effect
             const oopsSound = document.getElementById('oopsSound');
             if (oopsSound) oopsSound.play();
 
-            let a = ((Math.atan2(this.y, this.x) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+            // Calculate the ball's angle in range [0, 2π]
+            const normalizedAngle = mod(Math.atan2(this.y, this.x), 2 * Math.PI);
 
-            if (Math.abs(a) < Math.PI/2) {
+            // Calculate territory boundaries based on player fractions
+            const player1Start = this.game.cylinderAngle + Math.PI - this.game.player1.fraction * Math.PI;
+            const player1Territory = 2 * Math.PI * this.game.player1.fraction;
+            const player2Territory = 2 * Math.PI * this.game.player2.fraction;
+
+            // Normalize the angle relative to player1's territory start
+            const relativeAngle = mod(normalizedAngle - player1Start, 2 * Math.PI);
+
+            // Determine which player's territory the ball landed in
+            if (relativeAngle <= player1Territory) {
+                // Ball landed in player 1's territory (Yellow)
+                this.game.player1.score++; // Player 1 gets the point
+                if (this.game.player1.score >= this.game.gameScore) {
+                    this.game.player1.winning = true;
+                }
+                this.color = this.game.player1.color; // Ball takes territory color
+            } else {
+                // Ball landed in player 2's territory (Blue)
                 this.game.player2.score++;
                 if (this.game.player2.score >= this.game.gameScore) {
                     this.game.player2.winning = true;
                 }
-                this.color = `rgb(${this.game.player2.color.r},${this.game.player2.color.g},${this.game.player2.color.b})`;
-            } else {
-                this.game.player1.score++;
-                if (this.game.player1.score >= this.game.gameScore) {
-                    this.game.player1.winning = true;
-                }
-                this.color = `rgb(${this.game.player1.color.r},${this.game.player1.color.g},${this.game.player1.color.b})`;
+                this.color = this.game.player2.color;
             }
 
+            // Update territory sizes - territories will shrink for players with higher scores
             this.game.setFractions();
             this.pauseNum = this.game.num;
         } else if (this.pauseNum !== -1) {
+            // Handle ball reset animation
             this.radius -= 1;
             if (this.game.num - this.pauseNum >= 25) {
                 for (let player of [this.game.player1, this.game.player2]) {
