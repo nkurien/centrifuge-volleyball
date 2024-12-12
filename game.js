@@ -29,15 +29,26 @@ class Vector {
     }
 
     mult(m) {
-        return new Vector(this.x * m, this.y * m);
+        this.x *= m;
+        this.y *= m;
+        return this;
     }
 
-    subtract(v) {
-        return new Vector(this.x - v.x, this.y - v.y);
-    }
-
-    magnitude() {
+    length() {
         return Math.sqrt(this.x * this.x + this.y * this.y);
+    }
+
+    normalize() {
+        const len = this.length();
+        if (len !== 0) {
+            this.x /= len;
+            this.y /= len;
+        }
+        return this;
+    }
+
+    angle() {
+        return Math.atan2(this.y, this.x);
     }
 }
 
@@ -48,118 +59,238 @@ class Ball {
         this.x = 0;
         this.y = 0;
         this.angle = Math.random() * 2 * Math.PI;
-
-        // Initial speed
-        const initialSpeed = 1.5;
-        this.xVelocity = initialSpeed * Math.cos(this.angle);
-        this.yVelocity = initialSpeed * Math.sin(this.angle);
-
+        this.xVelocity = 2 * Math.cos(this.angle);
+        this.yVelocity = 2 * Math.sin(this.angle);
+        this.angularVelocity = 0;
+        this.grounded = false;
+        this.type = 0; // CentrifugeObject_BALL
         this.color = '#FFFFFF';
-        this.hitPower = 3;
-        this.bounceEnergy = 0.95;
-        this.dragFactor = 0.995;
+        this.pauseNum = -1;
+        this.hit = false;
     }
 
-    update() {
-        // Update position
-        this.x += this.xVelocity;
-        this.y += this.yVelocity;
+    move() {
+        if (!this.grounded) {
+            this.x += this.xVelocity;
+            this.y += this.yVelocity;
+            this.angle = Math.atan2(this.y, this.x) - this.game.cylinderAngle;
 
-        // Apply drag
-        this.xVelocity *= this.dragFactor;
-        this.yVelocity *= this.dragFactor;
-
-        // Check cylinder collision
-        const distanceFromCenter = Math.sqrt(this.x * this.x + this.y * this.y);
-        if (distanceFromCenter >= CYLINDER_RADIUS - this.radius) {
-            const collisionVector = new Vector(this.x, this.y);
-            const velocity = new Vector(this.xVelocity, this.yVelocity);
-
-            const collisionMagnitude = collisionVector.magnitude();
-            const normalizedCollision = new Vector(
-                collisionVector.x / collisionMagnitude,
-                collisionVector.y / collisionMagnitude
-            );
-
-            const dot = velocity.dot(normalizedCollision);
-            const reflection = normalizedCollision.mult(2 * dot);
-
-            this.xVelocity = (velocity.x - reflection.x) * this.bounceEnergy;
-            this.yVelocity = (velocity.y - reflection.y) * this.bounceEnergy;
-
-            const outwardForce = 0.3;
-            this.xVelocity -= normalizedCollision.x * outwardForce;
-            this.yVelocity -= normalizedCollision.y * outwardForce;
-
-            this.x = (CYLINDER_RADIUS - this.radius - 1) * normalizedCollision.x;
-            this.y = (CYLINDER_RADIUS - this.radius - 1) * normalizedCollision.y;
+            if (Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2)) >= CYLINDER_RADIUS - this.radius) {
+                this.x = (CYLINDER_RADIUS - this.radius) * Math.cos(this.angle + this.game.cylinderAngle);
+                this.y = (CYLINDER_RADIUS - this.radius) * Math.sin(this.angle + this.game.cylinderAngle);
+                this.grounded = true;
+            }
         }
 
-        // Rotation influence
-        const rotationInfluence = 0.06;
-        const tangentialX = -Math.sin(this.game.cylinderAngle);
-        const tangentialY = Math.cos(this.game.cylinderAngle);
-        this.xVelocity += tangentialX * rotationInfluence;
-        this.yVelocity += tangentialY * rotationInfluence;
-
-        // Check collisions with both players
-        this.checkPlayerCollision(this.game.player1);
-        this.checkPlayerCollision(this.game.player2);
+        if (this.grounded) {
+            this.angle += this.angularVelocity;
+            this.angularVelocity *= 0.9; // friction
+            this.x = (CYLINDER_RADIUS - this.radius) * Math.cos(this.angle + this.game.cylinderAngle);
+            this.y = (CYLINDER_RADIUS - this.radius) * Math.sin(this.angle + this.game.cylinderAngle);
+        }
     }
 
-    checkPlayerCollision(player) {
-        const dx = this.x - player.x;
-        const dy = this.y - player.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+    handleCollisions() {
+        for (let player of [this.game.player1, this.game.player2]) {
+            if (this.pauseNum === -1) {
+                const dxA = this.x - player.x;
+                const dyA = this.y - player.y;
+                const dxB = this.x - player.cylinderCircleCenterX;
+                const dyB = this.y - player.cylinderCircleCenterY;
+                const distA = Math.sqrt(Math.pow(dxA, 2) + Math.pow(dyA, 2));
+                const distB = Math.sqrt(Math.pow(dxB, 2) + Math.pow(dyB, 2));
 
-        if (distance < this.radius + player.radius) {
-            const normalizedCollision = new Vector(
-                dx / distance,
-                dy / distance
-            );
+                if (distA < player.radius + this.radius && distB < CYLINDER_RADIUS + this.radius) {
+                    let collisionVector;
+                    let centerX = 0;
+                    let centerY = 0;
+                    let centerRadius = 0;
+                    let cornerCollision = false;
 
-            // Calculate player's velocity vector
-            let playerVelocity;
-            if (player.grounded) {
-                const tangentialSpeed = player.angularVelocity * CYLINDER_RADIUS;
-                playerVelocity = new Vector(
-                    -Math.sin(player.angle) * tangentialSpeed,
-                    Math.cos(player.angle) * tangentialSpeed
-                );
-            } else {
-                playerVelocity = new Vector(
-                    player.xVelocity,
-                    player.yVelocity
-                );
+                    const angleFromPlayerCenter = Math.atan2(this.y - player.y, this.x - player.x);
+                    const angleFromCylinderCircleCenter = Math.atan2(
+                        this.y - player.cylinderCircleCenterY,
+                        this.x - player.cylinderCircleCenterX
+                    );
+
+                    const AFPCLowerBound = player.drawnAngle + this.game.cylinderAngle - player.playerIntersectAng/2 + Math.PI;
+                    const AFPCUpperBound = player.drawnAngle + this.game.cylinderAngle + player.playerIntersectAng/2 + Math.PI;
+                    const AFCCCLowerBound = player.drawnAngle + this.game.cylinderAngle - player.cylinderIntersectAng/2;
+                    const AFCCCUpperBound = player.drawnAngle + this.game.cylinderAngle + player.cylinderIntersectAng/2;
+
+                    const AFPCDiff = mod(angleFromPlayerCenter - AFPCLowerBound, 2 * Math.PI);
+                    const AFPCDiffMax = mod(AFPCUpperBound - AFPCLowerBound, 2 * Math.PI);
+                    const AFCCCDiff = mod(angleFromCylinderCircleCenter - AFCCCLowerBound, 2 * Math.PI);
+                    const AFCCCDiffMax = mod(AFCCCUpperBound - AFCCCLowerBound, 2 * Math.PI);
+
+                    if (AFPCDiff <= AFPCDiffMax) {
+                        centerX = player.x;
+                        centerY = player.y;
+                        centerRadius = player.radius;
+                        collisionVector = new Vector(dxA, dyA);
+                    } else if (AFCCCDiff <= AFCCCDiffMax) {
+                        centerX = player.cylinderCircleCenterX;
+                        centerY = player.cylinderCircleCenterY;
+                        centerRadius = CYLINDER_RADIUS;
+                        collisionVector = new Vector(dxB, dyB);
+                    } else if (AFPCDiff - AFPCDiffMax >= (2 * Math.PI - AFPCDiffMax) / 2) {
+                        // Left corner
+                        cornerCollision = true;
+                        centerX = player.x + player.radius * Math.cos(player.drawnAngle + this.game.cylinderAngle - player.playerIntersectAng/2 + Math.PI);
+                        centerY = player.y + player.radius * Math.sin(player.drawnAngle + this.game.cylinderAngle - player.playerIntersectAng/2 + Math.PI);
+                        centerRadius = 0;
+                        const dxC = this.x - centerX;
+                        const dyC = this.y - centerY;
+                        collisionVector = new Vector(dxC, dyC);
+                    } else {
+                        // Right corner
+                        cornerCollision = true;
+                        centerX = player.x + player.radius * Math.cos(player.drawnAngle + this.game.cylinderAngle + player.playerIntersectAng/2 + Math.PI);
+                        centerY = player.y + player.radius * Math.sin(player.drawnAngle + this.game.cylinderAngle + player.playerIntersectAng/2 + Math.PI);
+                        centerRadius = 0;
+                        const dxD = this.x - centerX;
+                        const dyD = this.y - centerY;
+                        collisionVector = new Vector(dxD, dyD);
+                    }
+
+                    if (player.grounded) {
+                        const speed = CYLINDER_RADIUS * (this.game.angVelocity + player.angularVelocity);
+                        player.xVelocity = speed * Math.cos(this.game.cylinderAngle + player.angle + Math.PI/2);
+                        player.yVelocity = speed * Math.sin(this.game.cylinderAngle + player.angle + Math.PI/2);
+
+                        const ballSpeed = Math.sqrt(Math.pow(this.xVelocity, 2) + Math.pow(this.yVelocity, 2));
+                        const extraSpeed = -ballSpeed;
+                        player.xVelocity += extraSpeed * Math.cos(this.game.cylinderAngle + player.angle);
+                        player.yVelocity += extraSpeed * Math.sin(this.game.cylinderAngle + player.angle);
+                    }
+
+                    // Play hit sound and mark as hit
+                    const hitSound = document.getElementById('hitSound');
+                    if (hitSound) hitSound.play();
+                    this.hit = true;
+
+                    // Calculate new velocities using proper Vector operations
+                    const playerVelocity = new Vector(player.xVelocity, player.yVelocity);
+                    const ballVelocity = new Vector(this.xVelocity, this.yVelocity);
+                    // Calculate velocities along collision vector
+                    const playerVelocityOnCollision = new Vector(
+                        collisionVector.x,
+                        collisionVector.y
+                    );
+                    const multiplier = playerVelocity.dot(collisionVector) / collisionVector.dot(collisionVector);
+                    playerVelocityOnCollision.mult(multiplier);
+
+                    // Calculate perpendicular velocities
+                    const playerVelocityPerpCollision = new Vector(
+                        playerVelocity.x - playerVelocityOnCollision.x,
+                        playerVelocity.y - playerVelocityOnCollision.y
+                    );
+
+                    const ballVelocityOnCollision = new Vector(
+                        collisionVector.x,
+                        collisionVector.y
+                    );
+                    const ballMultiplier = ballVelocity.dot(collisionVector) / collisionVector.dot(collisionVector);
+                    ballVelocityOnCollision.mult(ballMultiplier);
+
+                    const ballVelocityPerpCollision = new Vector(
+                        ballVelocity.x - ballVelocityOnCollision.x,
+                        ballVelocity.y - ballVelocityOnCollision.y
+                    );
+
+                    // Calculate final velocities
+                    const newPlayerVelocity = new Vector(
+                        playerVelocityPerpCollision.x + ballVelocityOnCollision.x,
+                        playerVelocityPerpCollision.y + ballVelocityOnCollision.y
+                    );
+                    const newBallVelocity = new Vector(
+                        ballVelocityPerpCollision.x + playerVelocityOnCollision.x,
+                        ballVelocityPerpCollision.y + playerVelocityOnCollision.y
+                    );
+
+                    // Update velocities
+                    player.xVelocity = newPlayerVelocity.x;
+                    player.yVelocity = newPlayerVelocity.y;
+                    this.xVelocity = newBallVelocity.x;
+                    this.yVelocity = newBallVelocity.y;
+
+                    // Update ball position
+                    const collisionAngle = Math.atan2(collisionVector.y, collisionVector.x);
+                    this.x = centerX + (centerRadius + this.radius) * Math.cos(collisionAngle);
+                    this.y = centerY + (centerRadius + this.radius) * Math.sin(collisionAngle);
+
+                    // Handle corner collision
+                    if (cornerCollision) {
+                        let iterations = 0;
+                        const MAX_ITERATIONS = 10;
+                        while (iterations < MAX_ITERATIONS) {
+                            const newDxA = this.x - player.x;
+                            const newDyA = this.y - player.y;
+                            const newDxB = this.x - player.cylinderCircleCenterX;
+                            const newDyB = this.y - player.cylinderCircleCenterY;
+                            const newDistA = Math.sqrt(Math.pow(newDxA, 2) + Math.pow(newDyA, 2));
+                            const newDistB = Math.sqrt(Math.pow(newDxB, 2) + Math.pow(newDyB, 2));
+
+                            if (!(newDistA < player.radius + this.radius && newDistB < CYLINDER_RADIUS + this.radius)) {
+                                break;
+                            }
+
+                            this.x += 2 * Math.cos(collisionAngle);
+                            this.y += 2 * Math.sin(collisionAngle);
+                            iterations++;
+                        }
+                    }
+                }
             }
 
-            // Calculate current ball speed
-            const currentSpeed = Math.sqrt(this.xVelocity * this.xVelocity + this.yVelocity * this.yVelocity);
-
-            // Combine base hit power with player velocity
-            const hitSpeed = this.hitPower +
-                playerVelocity.magnitude() * 0.3 +
-                currentSpeed * 0.2;
-
-            this.xVelocity = normalizedCollision.x * hitSpeed;
-            this.yVelocity = normalizedCollision.y * hitSpeed;
-
-            // Move ball outside player
-            this.x = player.x + (this.radius + player.radius + 1) * normalizedCollision.x;
-            this.y = player.y + (this.radius + player.radius + 1) * normalizedCollision.y;
-
-            const hitSound = document.getElementById('hitSound');
-            if (hitSound) hitSound.play();
         }
+    }
+
+    handlePoints() {
+        if (this.grounded && this.pauseNum === -1 && !this.hit) {
+            const oopsSound = document.getElementById('oopsSound');
+            if (oopsSound) oopsSound.play();
+
+            let a = ((Math.atan2(this.y, this.x) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+
+            if (Math.abs(a) < Math.PI/2) {
+                this.game.player2.score++;
+                if (this.game.player2.score >= this.game.gameScore) {
+                    this.game.player2.winning = true;
+                }
+                this.color = `rgb(${this.game.player2.color.r},${this.game.player2.color.g},${this.game.player2.color.b})`;
+            } else {
+                this.game.player1.score++;
+                if (this.game.player1.score >= this.game.gameScore) {
+                    this.game.player1.winning = true;
+                }
+                this.color = `rgb(${this.game.player1.color.r},${this.game.player1.color.g},${this.game.player1.color.b})`;
+            }
+
+            this.game.setFractions();
+            this.pauseNum = this.game.num;
+        } else if (this.pauseNum !== -1) {
+            this.radius -= 1;
+            if (this.game.num - this.pauseNum >= 25) {
+                for (let player of [this.game.player1, this.game.player2]) {
+                    player.targetFraction = player.targetTargetFraction;
+                }
+                this.reset();
+            }
+        }
+        this.hit = false;
     }
 
     reset() {
+        this.pauseNum = -1;
+        this.grounded = false;
         this.x = 0;
         this.y = 0;
+        this.radius = 25;
+        this.color = "#FFFFFF";
         this.angle = Math.random() * 2 * Math.PI;
-        const initialSpeed = 2;
-        this.xVelocity = initialSpeed * Math.cos(this.angle);
-        this.yVelocity = initialSpeed * Math.sin(this.angle);
+        this.xVelocity = 2 * Math.cos(this.angle);
+        this.yVelocity = 2 * Math.sin(this.angle);
     }
 
     draw(ctx) {
@@ -168,106 +299,193 @@ class Ball {
         ctx.fillStyle = this.color;
         ctx.fill();
     }
+
+    update() {
+        this.move();
+        this.handleCollisions();
+        this.handlePoints();
+    }
 }
 
 class Player {
     constructor(game, playerNumber) {
         this.game = game;
         this.playerNumber = playerNumber;
-        this.score = 0;
 
-        // Set initial position based on player number
-        this.angle = playerNumber === 1 ? 0 : Math.PI;
-        this.radius = 40;
-        this.color = playerNumber === 1 ? PLAYER_COLORS.YELLOW : PLAYER_COLORS.BLUE;
+        // Initial position
+        this.x = CYLINDER_RADIUS * Math.cos(2 * Math.PI * playerNumber / 2);
+        this.y = CYLINDER_RADIUS * Math.sin(2 * Math.PI * playerNumber / 2);
+        this.angle = Math.atan2(this.y, this.x);
 
         // Movement properties
         this.angularVelocity = 0;
-        this.maxVelocity = 0.2;
-        this.acceleration = 0.01;
-        this.leftPressed = false;
-        this.rightPressed = false;
-
-        // Jump properties
-        this.grounded = true;
-        this.x = CYLINDER_RADIUS * Math.cos(this.angle);
-        this.y = CYLINDER_RADIUS * Math.sin(this.angle);
         this.xVelocity = 0;
         this.yVelocity = 0;
         this.jumpPower = 4;
+        this.angAccel = 0.01;
+        this.maxVelocity = 0.2;
+        this.grounded = true;
 
-        // Visual feedback
-        this.lastHitTime = 0;
-        this.glowDuration = 1000;
-        this.glowIntensity = 0;
+        // Visual properties
+        this.radius = 40;
+        this.targetRadius = this.radius;
+        this.cylinderCircleCenterX = 0;
+        this.cylinderCircleCenterY = 0;
+        this.keyLeft = 0;
+        this.keyRight = 0;
+        this.keyJump = 0;
+        this.keyLeftPressed = false;
+        this.keyRightPressed = false;
+        this.score = 0;
+        this.type = 1; // CentrifugeObject_PLAYER
+
+        // Color based on player number
+        if (playerNumber === 1) {
+            this.r = 255;
+            this.g = 255;
+            this.b = 0;
+        } else {
+            this.r = 0;
+            this.g = 255;
+            this.b = 255;
+        }
+        this.color = `rgb(${this.r},${this.g},${this.b})`;
+        this.drawnAngle = this.angle;
+
+        // Set up controls based on player number
+        if (playerNumber === 1) {
+            this.keyLeft = KEYS.P1_LEFT;   // 37 (Left arrow)
+            this.keyRight = KEYS.P1_RIGHT; // 39 (Right arrow)
+            this.keyJump = KEYS.P1_UP;     // 38 (Up arrow)
+        } else {
+            this.keyLeft = KEYS.P2_LEFT;   // 65 (A)
+            this.keyRight = KEYS.P2_RIGHT; // 68 (D)
+            this.keyJump = KEYS.P2_UP;     // 87 (W)
+        }
+
+        // Territory control
+        this.fraction = 1/2;  // Start with equal territory
+        this.targetFraction = this.fraction;
+        this.targetTargetFraction = this.fraction;
+        this.winning = false;
+
+        // Intersection geometry
+        this.cylinderIntersectAng = 0;
+        this.playerIntersectAng = 0;
     }
 
     jump() {
         if (this.grounded) {
             this.grounded = false;
 
-            // Calculate initial jump velocity
+            // Calculate initial velocity based on cylinder rotation
             const speed = CYLINDER_RADIUS * (this.game.angVelocity + this.angularVelocity);
             this.xVelocity = speed * Math.cos(this.game.cylinderAngle + this.angle + Math.PI/2);
             this.yVelocity = speed * Math.sin(this.game.cylinderAngle + this.angle + Math.PI/2);
-            
-            // Add upward velocity
+
+            // Add jump velocity
             const extraSpeed = -this.jumpPower;
             this.xVelocity += extraSpeed * Math.cos(this.game.cylinderAngle + this.angle);
             this.yVelocity += extraSpeed * Math.sin(this.game.cylinderAngle + this.angle);
         }
     }
 
-    update() {
-        if (this.grounded) {
-            // Ground movement
-            if (this.leftPressed && this.angularVelocity > -this.maxVelocity) {
-                this.angularVelocity += this.acceleration;
+    move() {
+        if (!this.grounded) {
+            this.x += this.xVelocity;
+            this.y += this.yVelocity;
+            this.angle = Math.atan2(this.y, this.x) - this.game.cylinderAngle;
+
+            if (Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2)) >= CYLINDER_RADIUS) {
+                this.x = CYLINDER_RADIUS * Math.cos(this.angle + this.game.cylinderAngle);
+                this.y = CYLINDER_RADIUS * Math.sin(this.angle + this.game.cylinderAngle);
+                this.grounded = true;
             }
-            if (this.rightPressed && this.angularVelocity < this.maxVelocity) {
-                this.angularVelocity -= this.acceleration;
+        }
+
+        if (this.grounded) {
+            console.log('Player state:', {
+                leftPressed: this.keyLeftPressed,
+                rightPressed: this.keyRightPressed,
+                angularVelocity: this.angularVelocity
+            });
+
+            if (this.keyLeftPressed && this.angularVelocity > -this.maxVelocity) {
+                this.angularVelocity += this.angAccel;
+            }
+            if (this.keyRightPressed && this.angularVelocity < this.maxVelocity) {
+                this.angularVelocity -= this.angAccel;
             }
 
             this.angle += this.angularVelocity;
             this.angularVelocity *= 0.9; // friction
 
-            // Update position on cylinder
             this.x = CYLINDER_RADIUS * Math.cos(this.angle + this.game.cylinderAngle);
             this.y = CYLINDER_RADIUS * Math.sin(this.angle + this.game.cylinderAngle);
-        } else {
-            // Air movement
-            this.x += this.xVelocity;
-            this.y += this.yVelocity;
-            
-            // Check if landed on cylinder
-            if (Math.sqrt(this.x * this.x + this.y * this.y) >= CYLINDER_RADIUS) {
-                this.grounded = true;
-                this.angle = Math.atan2(this.y, this.x) - this.game.cylinderAngle;
-                this.x = CYLINDER_RADIUS * Math.cos(this.angle + this.game.cylinderAngle);
-                this.y = CYLINDER_RADIUS * Math.sin(this.angle + this.game.cylinderAngle);
-            }
-        }
-    }
-
-    increaseScore() {
-        this.score++;
-        // Check for win condition (first to 5 points)
-        if (this.score >= 5) {
-            this.game.endGame(this.playerNumber);
         }
     }
 
     draw(ctx) {
+        this.drawnAngle = this.angle;
+
+        // Calculate intersection angles
+        this.cylinderIntersectAng = 2 * Math.acos(1 - 0.5 * Math.pow(this.radius/CYLINDER_RADIUS, 2)); // law of cosines
+        this.playerIntersectAng = 2 * Math.asin(CYLINDER_RADIUS/this.radius * Math.sin(this.cylinderIntersectAng/2)); // law of sines
+
+        // Calculate cylinder circle center
+        this.cylinderCircleCenterX = this.x - CYLINDER_RADIUS * Math.cos(this.drawnAngle + this.game.cylinderAngle);
+        this.cylinderCircleCenterY = this.y - CYLINDER_RADIUS * Math.sin(this.drawnAngle + this.game.cylinderAngle);
+
+        // Draw the player shape
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgb(${this.color.r},${this.color.g},${this.color.b})`;
+        ctx.moveTo(this.x, this.y);
+
+        // Draw cylinder intersection arc
+        ctx.arc(
+            this.cylinderCircleCenterX,
+            this.cylinderCircleCenterY,
+            CYLINDER_RADIUS,
+            this.drawnAngle + this.game.cylinderAngle - this.cylinderIntersectAng/2,
+            this.drawnAngle + this.game.cylinderAngle + this.cylinderIntersectAng/2,
+            false
+        );
+
+        // Draw player arc
+        ctx.arc(
+            this.x,
+            this.y,
+            this.radius,
+            this.drawnAngle + this.game.cylinderAngle - this.playerIntersectAng/2 + Math.PI,
+            this.drawnAngle + this.game.cylinderAngle + this.playerIntersectAng/2 + Math.PI,
+            false
+        );
+
+        // Fill and draw score
+        ctx.fillStyle = this.color;
         ctx.fill();
+
+        ctx.fillStyle = "#000000";
+        const centerX = this.x - this.radius/2 * Math.cos(this.drawnAngle + this.game.cylinderAngle);
+        const centerY = this.y - this.radius/2 * Math.sin(this.drawnAngle + this.game.cylinderAngle);
+
+        ctx.translate(centerX, centerY);
+        ctx.rotate(this.game.camAngle);
+        ctx.fillText(this.score, 0, 0);
+        ctx.rotate(-this.game.camAngle);
+        ctx.translate(-centerX, -centerY);
+
+        // Update fraction for territory size
+        this.fraction += (this.targetFraction - this.fraction) / 10;
+    }
+
+    update() {
+        this.move();
     }
 }
 
 class Game {
     constructor() {
-        this.canvas = document.getElementById('gameCanvas');
+        this.canvas = document.getElementById('canv');
         if (!this.canvas) {
             console.error('Canvas element not found!');
             return;
@@ -275,160 +493,225 @@ class Game {
 
         this.ctx = this.canvas.getContext('2d');
 
-        // Set canvas size
-        this.canvas.width = 600;
-        this.canvas.height = 600;
-
         // Game state
         this.cylinderAngle = 0;
         this.camAngle = 0;
         this.angVelocity = 0.02;
-        this.gameStarted = false;
+        this.camAngVelocity = 0.02;
+        this.gameStarted = true;
         this.gameEnded = false;
-        this.winner = null;
+        this.winner = -1;
+        this.gameScore = 25;
+        this.num = 1150;  // Frame counter
+        this.startTime = null;
+        this.highPerformance = true;
 
         // Create players and ball
         this.player1 = new Player(this, 1);
         this.player2 = new Player(this, 2);
         this.ball = new Ball(this);
 
+        // Generate stars for background
+        this.stars = [];
+        this.generateStars();
+
         // Center the coordinate system
         this.ctx.translate(this.canvas.width/2, this.canvas.height/2);
 
-        // Bind event listeners
-        document.addEventListener('keydown', this.handleKeyDown.bind(this));
-        document.addEventListener('keyup', this.handleKeyUp.bind(this));
+        // Bind event handlers with the correct context
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.handleKeyUp = this.handleKeyUp.bind(this);
 
-        // Start the game
-        this.gameStarted = true;
-        this.gameLoop(0);
+        // Add event listeners
+        document.addEventListener('keydown', this.handleKeyDown);
+        document.addEventListener('keyup', this.handleKeyUp);
+
+        // Start game loop
+        this.timer();
+    }
+
+    generateStars() {
+        for(let i = 0; i < 1000; i++) {
+            this.stars[i] = {
+                x: Math.random() * 637 - 318,
+                y: Math.random() * 637 - 318
+            };
+        }
+    }
+
+    renderStars() {
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = "#FFFFFF";
+        this.ctx.lineWidth = 2;
+        for(let i = 0; i < 1000; i++) {
+            this.ctx.moveTo(this.stars[i].x, this.stars[i].y);
+            this.ctx.lineTo(this.stars[i].x + 1, this.stars[i].y + 1);
+        }
+        this.ctx.stroke();
+    }
+
+    setFractions() {
+        let total = 0;
+        const players = [this.player1, this.player2];
+
+        for(let i = 0; i < players.length; i++) {
+            players[i].hScore = Math.max(players[i].score, 1);
+            players[i].hScore = 1/players[i].hScore;
+            total += players[i].hScore;
+        }
+
+        for(let i = 0; i < players.length; i++) {
+            players[i].targetTargetFraction = players[i].hScore/total;
+        }
+    }
+
+    timer() {
+        const beg = new Date();
+
+        // Update camera and cylinder rotation
+        this.cylinderAngle += this.angVelocity;
+        this.camAngle += this.camAngVelocity;
+
+        this.num++;
+        const m = this.num % 2300;
+        if(m >= 1000 && m < 1150) {
+            this.camAngVelocity += this.angVelocity/150;
+        } else if(m >= 2150 && m < 2300) {
+            this.camAngVelocity -= this.angVelocity/150;
+        }
+
+        // FPS calculation
+        if(this.num % 20 == 0) {
+            const now = new Date();
+            if(this.startTime) {
+                const framerate = 20/((now.getTime()-this.startTime.getTime())/1000);
+                document.getElementById('fps').innerHTML = Math.round(framerate);
+                if(framerate < 29) this.highPerformance = false;
+            }
+            this.startTime = now;
+        }
+
+        if(this.camAngVelocity != 0) {
+            this.ctx.rotate(-this.camAngVelocity);
+        }
+
+        // Clear canvas with proper alpha for motion blur
+        if(this.highPerformance) {
+            this.ctx.fillStyle = "rgba(0,0,0,0.5)";
+            this.ctx.fillRect(-318, -318, 637, 637);
+        } else {
+            this.ctx.clearRect(-318, -318, 637, 637);
+        }
+
+        // Render background stars
+        this.renderStars();
+
+        // Draw player territories
+        this.ctx.strokeStyle = "#FFFFFF";
+        this.ctx.lineWidth = 1;
+
+        let angle = this.cylinderAngle + Math.PI - this.player1.fraction * Math.PI;
+        const opacity = this.highPerformance ? 0.2 : 0.35;
+
+        // Player 1 territory
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 0);
+        this.ctx.arc(0, 0, CYLINDER_RADIUS + 4, angle,
+            angle + this.player1.fraction * 2 * Math.PI, false);
+        this.ctx.fillStyle = `rgba(${this.player1.r},${this.player1.g},${this.player1.b},${opacity})`;
+        this.ctx.fill();
+        this.ctx.stroke();
+
+        // Player 2 territory
+        angle += this.player1.fraction * 2 * Math.PI;
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 0);
+        this.ctx.arc(0, 0, CYLINDER_RADIUS + 4, angle,
+            angle + this.player2.fraction * 2 * Math.PI, false);
+        this.ctx.fillStyle = `rgba(${this.player2.r},${this.player2.g},${this.player2.b},${opacity})`;
+        this.ctx.fill();
+        this.ctx.stroke();
+
+        // Draw cylinder outline
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, CYLINDER_RADIUS + 4, 0, 2 * Math.PI, false);
+        this.ctx.strokeStyle = "#FFFFFF";
+        this.ctx.lineWidth = 10;
+        this.ctx.stroke();
+
+        // Update and draw game objects
+        this.player1.update();
+        this.player2.update();
+        this.ball.update();
+
+        this.ball.draw(this.ctx);
+        this.player1.draw(this.ctx);
+        this.player2.draw(this.ctx);
+
+        // Game over screen
+        if(this.gameEnded) {
+            this.ctx.fillStyle = "rgba(0,0,0,0.5)";
+            this.ctx.fillRect(-150, -50, 300, 100);
+            this.ctx.fillStyle = "#FFFFFF";
+            this.ctx.font = "32px Arial";
+            this.ctx.textAlign = "center";
+            this.ctx.fillText(`Player ${this.winner} Wins!`, 0, 0);
+        } else {
+            // Continue game loop
+            const end = new Date();
+            const computationTime = end.getTime() - beg.getTime();
+            setTimeout(() => this.timer(), Math.max(30 - computationTime, 17));
+        }
     }
 
     handleKeyDown(event) {
         // Player 1 controls
-        switch(event.keyCode) {
-            case KEYS.P1_LEFT:
-                this.player1.leftPressed = true;
-                break;
-            case KEYS.P1_RIGHT:
-                this.player1.rightPressed = true;
-                break;
-            case KEYS.P1_UP:
-                this.player1.jump();
-                break;
+        if (event.keyCode === this.player1.keyLeft) {
+            this.player1.keyLeftPressed = true;
+        }
+        if (event.keyCode === this.player1.keyRight) {
+            this.player1.keyRightPressed = true;
+        }
+        if (event.keyCode === this.player1.keyJump && this.player1.grounded) {
+            this.player1.jump();
+        }
 
-            // Player 2 controls
-            case KEYS.P2_LEFT:
-                this.player2.leftPressed = true;
-                break;
-            case KEYS.P2_RIGHT:
-                this.player2.rightPressed = true;
-                break;
-            case KEYS.P2_UP:
-                this.player2.jump();
-                break;
+        // Player 2 controls
+        if (event.keyCode === this.player2.keyLeft) {
+            this.player2.keyLeftPressed = true;
+        }
+        if (event.keyCode === this.player2.keyRight) {
+            this.player2.keyRightPressed = true;
+        }
+        if (event.keyCode === this.player2.keyJump && this.player2.grounded) {
+            this.player2.jump();
         }
     }
 
     handleKeyUp(event) {
         // Player 1 controls
-        switch(event.keyCode) {
-            case KEYS.P1_LEFT:
-                this.player1.leftPressed = false;
-                break;
-            case KEYS.P1_RIGHT:
-                this.player1.rightPressed = false;
-                break;
+        if (event.keyCode === this.player1.keyLeft) {
+            this.player1.keyLeftPressed = false;
+        }
+        if (event.keyCode === this.player1.keyRight) {
+            this.player1.keyRightPressed = false;
+        }
 
-            // Player 2 controls
-            case KEYS.P2_LEFT:
-                this.player2.leftPressed = false;
-                break;
-            case KEYS.P2_RIGHT:
-                this.player2.rightPressed = false;
-                break;
+        // Player 2 controls
+        if (event.keyCode === this.player2.keyLeft) {
+            this.player2.keyLeftPressed = false;
+        }
+        if (event.keyCode === this.player2.keyRight) {
+            this.player2.keyRightPressed = false;
         }
     }
+}
 
-    update() {
-        if (this.gameStarted && !this.gameEnded) {
-            this.cylinderAngle += this.angVelocity;
-            this.player1.update();
-            this.player2.update();
-            this.ball.update();
-
-            // Check for scoring
-            const ballAngle = Math.atan2(this.ball.y, this.ball.x);
-            const distanceFromCenter = Math.sqrt(this.ball.x * this.ball.x + this.ball.y * this.ball.y);
-
-            if (distanceFromCenter >= CYLINDER_RADIUS - this.ball.radius) {
-                // Check which half the ball landed in
-                if (Math.abs(ballAngle) < Math.PI/2) {
-                    this.player2.increaseScore();
-                } else {
-                    this.player1.increaseScore();
-                }
-                this.ball.reset();
-            }
-        }
-    }
-
-    draw() {
-        const ctx = this.ctx;
-
-        // Clear the canvas
-        ctx.clearRect(-this.canvas.width/2, -this.canvas.height/2,
-            this.canvas.width, this.canvas.height);
-
-        // Draw the cylinder with player territories
-        ctx.beginPath();
-        ctx.arc(0, 0, CYLINDER_RADIUS, 0, Math.PI);
-        ctx.strokeStyle = '#FFFF00';
-        ctx.lineWidth = 4;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(0, 0, CYLINDER_RADIUS, Math.PI, Math.PI * 2);
-        ctx.strokeStyle = '#00FFFF';
-        ctx.lineWidth = 4;
-        ctx.stroke();
-
-        // Draw the score
-        ctx.font = '24px Arial';
-        ctx.fillStyle = '#FFFFFF';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${this.player1.score} - ${this.player2.score}`, 0, -CYLINDER_RADIUS - 20);
-
-        // Draw the players and ball
-        this.player1.draw(ctx);
-        this.player2.draw(ctx);
-        this.ball.draw(ctx);
-
-        // Draw game over message if needed
-        if (this.gameEnded) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(-150, -50, 300, 100);
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = '32px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(`Player ${this.winner} Wins!`, 0, 0);
-        }
-    }
-
-    endGame(winner) {
-        this.gameEnded = true;
-        this.winner = winner;
-    }
-
-    gameLoop(currentTime) {
-        this.update();
-        this.draw();
-        requestAnimationFrame(this.gameLoop.bind(this));
-    }
+function mod(a, b) {
+    return ((a % b) + b) % b;
 }
 
 // Start the game when the page loads
 window.onload = () => {
     const game = new Game();
-    game.gameLoop(0);
 };
