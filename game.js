@@ -258,21 +258,18 @@ class Ball {
             // Calculate territory boundaries based on player fractions
             const player1Start = this.game.cylinderAngle + Math.PI - this.game.player1.fraction * Math.PI;
             const player1Territory = 2 * Math.PI * this.game.player1.fraction;
-            const player2Territory = 2 * Math.PI * this.game.player2.fraction;
 
             // Normalize the angle relative to player1's territory start
             const relativeAngle = mod(normalizedAngle - player1Start, 2 * Math.PI);
 
             // Determine which player's territory the ball landed in
             if (relativeAngle <= player1Territory) {
-                // Ball landed in player 1's territory (Yellow)
-                this.game.player1.score++; // Player 1 gets the point
+                this.game.player1.score++;
                 if (this.game.player1.score >= this.game.gameScore) {
                     this.game.player1.winning = true;
                 }
-                this.color = this.game.player1.color; // Ball takes territory color
+                this.color = this.game.player1.color;
             } else {
-                // Ball landed in player 2's territory (Blue)
                 this.game.player2.score++;
                 if (this.game.player2.score >= this.game.gameScore) {
                     this.game.player2.winning = true;
@@ -280,16 +277,29 @@ class Ball {
                 this.color = this.game.player2.color;
             }
 
-            // Update territory sizes - territories will shrink for players with higher scores
+            // Check for game end condition
+            const highestScore = Math.max(this.game.player1.score, this.game.player2.score);
+            const lowestScore = Math.min(this.game.player1.score, this.game.player2.score);
+            const scoreDifference = highestScore - lowestScore;
+
+            // Win by 2 rule
+            if (highestScore >= this.game.gameScore && scoreDifference >= 2) {
+                this.game.gameEnded = true;
+                this.game.winner = this.game.player1.score > this.game.player2.score ? 1 : 2;
+                // Play win sound
+                const winSound = document.getElementById('winSound');
+                if (winSound) winSound.play();
+            }
+
+            // Update territory sizes
             this.game.setFractions();
             this.pauseNum = this.game.num;
         } else if (this.pauseNum !== -1) {
             // Handle ball reset animation
             this.radius -= 1;
             if (this.game.num - this.pauseNum >= 25) {
-                for (let player of [this.game.player1, this.game.player2]) {
-                    player.targetFraction = player.targetTargetFraction;
-                }
+                this.game.player1.targetFraction = this.game.player1.targetTargetFraction;
+                this.game.player2.targetFraction = this.game.player2.targetTargetFraction;
                 this.reset();
             }
         }
