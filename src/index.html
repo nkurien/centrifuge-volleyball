@@ -5,6 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Centrifuge Volleyball</title>
         <meta name="description" content="A two-player game on a rotating cylinder in space." />
+        <meta name="theme-color" content="#1d1e20" />
+        <link rel="manifest" href="manifest.json" />
+        <link rel="apple-touch-icon" href="assets/icon-192.png" />
         <link rel="stylesheet" href="styles/styles.css" />
     </head>
     <body>
@@ -64,5 +67,14 @@
         </audio>
 
         <script type="module" src="js/Game.js"></script>
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('sw.js').catch((err) => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+                });
+            }
+        </script>
     </body>
 </html>
