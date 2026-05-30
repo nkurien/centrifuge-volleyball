@@ -17,7 +17,7 @@ Two players are inside a rotating cylinder in space. Hit the ball into your oppo
 
 ## Physics
 
-Players and ball move in a true inertial frame. The rotating cylinder effect comes from the camera, not from simulated forces on the entities. Jumping inherits the wall's tangential velocity. Ball collisions use the actual crescent intersection geometry rather than approximating the player shape as a circle.
+Physics runs in a fixed inertial frame. On jump, players inherit the wall's tangential velocity at takeoff. Collision detection uses the true circle-circle intersection of the player and cylinder radii, giving each player an accurate crescent collision boundary.
 
 ## Code
 
