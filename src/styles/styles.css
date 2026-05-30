@@ -122,7 +122,7 @@ kbd {
 }
 
 .touch-btn {
-    background: #2e2e33;
+    background: #1d1e20;
     border: 1px solid #333333;
     border-radius: 8px;
     color: #dadadb;
@@ -140,7 +140,7 @@ kbd {
 }
 
 .touch-btn:active {
-    background: #414244;
+    background: #2e2e33;
 }
 
 /* Jump button uses player accent colour */
