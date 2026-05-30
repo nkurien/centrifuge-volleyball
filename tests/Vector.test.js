@@ -24,12 +24,12 @@ describe('Vector', () => {
 
     describe('dot()', () => {
         it.each([
-            { a: [1, 0],  b: [0, 1],  expected: 0,   label: 'orthogonal → 0' },
-            { a: [2, 3],  b: [2, 3],  expected: 13,  label: 'parallel → sum of squares' },
-            { a: [1, 0],  b: [-1, 0], expected: -1,  label: 'anti-parallel → negative' },
-            { a: [3, -2], b: [4, 6],  expected: 0,   label: 'arbitrary orthogonal pair' },
-            { a: [5, 7],  b: [0, 0],  expected: 0,   label: 'with zero vector → 0' },
-            { a: [2, 5],  b: [3, -1], expected: 1,   label: 'arbitrary non-zero' },
+            { a: [1, 0], b: [0, 1], expected: 0, label: 'orthogonal → 0' },
+            { a: [2, 3], b: [2, 3], expected: 13, label: 'parallel → sum of squares' },
+            { a: [1, 0], b: [-1, 0], expected: -1, label: 'anti-parallel → negative' },
+            { a: [3, -2], b: [4, 6], expected: 0, label: 'arbitrary orthogonal pair' },
+            { a: [5, 7], b: [0, 0], expected: 0, label: 'with zero vector → 0' },
+            { a: [2, 5], b: [3, -1], expected: 1, label: 'arbitrary non-zero' },
         ])('$label', ({ a, b, expected }) => {
             // Arrange
             const vecA = new Vector(a[0], a[1]);
@@ -47,11 +47,11 @@ describe('Vector', () => {
 
     describe('mult()', () => {
         it.each([
-            { x: 2, y: 3,  m: 4,    ex: 8,   ey: 12,  label: 'positive scalar' },
-            { x: 5, y: -3, m: 0,    ex: 0,   ey: 0,   label: 'multiply by 0' },
-            { x: 2, y: 3,  m: -1,   ex: -2,  ey: -3,  label: 'negate' },
-            { x: 7, y: -4, m: 1,    ex: 7,   ey: -4,  label: 'identity (×1)' },
-            { x: 10, y: 20, m: 0.5, ex: 5,   ey: 10,  label: 'fractional' },
+            { x: 2, y: 3, m: 4, ex: 8, ey: 12, label: 'positive scalar' },
+            { x: 5, y: -3, m: 0, ex: 0, ey: 0, label: 'multiply by 0' },
+            { x: 2, y: 3, m: -1, ex: -2, ey: -3, label: 'negate' },
+            { x: 7, y: -4, m: 1, ex: 7, ey: -4, label: 'identity (×1)' },
+            { x: 10, y: 20, m: 0.5, ex: 5, ey: 10, label: 'fractional' },
         ])('$label', ({ x, y, m, ex, ey }) => {
             // Arrange
             const v = new Vector(x, y);
@@ -80,12 +80,12 @@ describe('Vector', () => {
 
     describe('length()', () => {
         it.each([
-            { x: 1, y: 0,  expected: 1,          label: 'unit along x' },
-            { x: 0, y: 1,  expected: 1,          label: 'unit along y' },
-            { x: 0, y: 0,  expected: 0,          label: 'zero vector' },
-            { x: 3, y: 4,  expected: 5,          label: '3-4-5 triangle' },
-            { x: -3, y: -4, expected: 5,         label: 'negative components' },
-            { x: 1, y: 1,  expected: Math.SQRT2, label: '(1,1) → √2' },
+            { x: 1, y: 0, expected: 1, label: 'unit along x' },
+            { x: 0, y: 1, expected: 1, label: 'unit along y' },
+            { x: 0, y: 0, expected: 0, label: 'zero vector' },
+            { x: 3, y: 4, expected: 5, label: '3-4-5 triangle' },
+            { x: -3, y: -4, expected: 5, label: 'negative components' },
+            { x: 1, y: 1, expected: Math.SQRT2, label: '(1,1) → √2' },
         ])('$label → $expected', ({ x, y, expected }) => {
             // Arrange
             const v = new Vector(x, y);
@@ -102,10 +102,10 @@ describe('Vector', () => {
 
     describe('normalize()', () => {
         it.each([
-            { x: 3,    y: 4,    label: '(3,4)' },
-            { x: 1,    y: 0,    label: 'unit x' },
-            { x: 1000, y: 0,    label: 'large vector' },
-            { x: -7,   y: 3.5,  label: 'negative+fractional' },
+            { x: 3, y: 4, label: '(3,4)' },
+            { x: 1, y: 0, label: 'unit x' },
+            { x: 1000, y: 0, label: 'large vector' },
+            { x: -7, y: 3.5, label: 'negative+fractional' },
         ])('$label → unit length', ({ x, y }) => {
             // Arrange
             const v = new Vector(x, y);
@@ -154,12 +154,12 @@ describe('Vector', () => {
 
     describe('angle()', () => {
         it.each([
-            { x: 1,  y: 0,  expected: 0,                 label: '+x axis → 0' },
-            { x: 0,  y: 1,  expected: Math.PI / 2,       label: '+y axis → π/2' },
-            { x: -1, y: 0,  expected: Math.PI,            label: '-x axis → π' },
-            { x: 0,  y: -1, expected: -Math.PI / 2,       label: '-y axis → -π/2' },
-            { x: 1,  y: 1,  expected: Math.PI / 4,        label: 'diagonal (1,1) → π/4' },
-            { x: -1, y: -1, expected: -3 * Math.PI / 4,   label: 'diagonal (-1,-1) → -3π/4' },
+            { x: 1, y: 0, expected: 0, label: '+x axis → 0' },
+            { x: 0, y: 1, expected: Math.PI / 2, label: '+y axis → π/2' },
+            { x: -1, y: 0, expected: Math.PI, label: '-x axis → π' },
+            { x: 0, y: -1, expected: -Math.PI / 2, label: '-y axis → -π/2' },
+            { x: 1, y: 1, expected: Math.PI / 4, label: 'diagonal (1,1) → π/4' },
+            { x: -1, y: -1, expected: (-3 * Math.PI) / 4, label: 'diagonal (-1,-1) → -3π/4' },
         ])('$label', ({ x, y, expected }) => {
             // Arrange
             const v = new Vector(x, y);

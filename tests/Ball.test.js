@@ -3,8 +3,14 @@ import { Ball, mod } from '../src/js/Ball.js';
 import { Player } from '../src/js/Player.js';
 import { createMockGame, installDomMocks } from './mocks.js';
 import {
-    CYLINDER_RADIUS, BALL_RADIUS, BALL_INITIAL_SPEED, BALL_FRICTION,
-    WIN_SCORE, MIN_SCORE_DIFFERENCE, PALETTE, PLAYER_COLORS,
+    CYLINDER_RADIUS,
+    BALL_RADIUS,
+    BALL_INITIAL_SPEED,
+    BALL_FRICTION,
+    WIN_SCORE,
+    MIN_SCORE_DIFFERENCE,
+    PALETTE,
+    PLAYER_COLORS,
 } from '../src/js/config.js';
 
 beforeEach(() => {
@@ -53,11 +59,11 @@ function setupWinScenario(p1Score, p2Score) {
 
 describe('mod()', () => {
     it.each([
-        { a: 3,    b: 5,              expected: 3,     label: 'positive within range' },
-        { a: -1,   b: 5,              expected: 4,     label: 'negative wraps' },
-        { a: 10,   b: 5,              expected: 0,     label: 'exact multiple → 0' },
-        { a: 0,    b: 7,              expected: 0,     label: 'zero mod anything → 0' },
-        { a: -13,  b: 5,              expected: 2,     label: 'large negative' },
+        { a: 3, b: 5, expected: 3, label: 'positive within range' },
+        { a: -1, b: 5, expected: 4, label: 'negative wraps' },
+        { a: 10, b: 5, expected: 0, label: 'exact multiple → 0' },
+        { a: 0, b: 7, expected: 0, label: 'zero mod anything → 0' },
+        { a: -13, b: 5, expected: 2, label: 'large negative' },
     ])('mod($a, $b) → $expected ($label)', ({ a, b, expected }) => {
         // Arrange — inputs provided by parameterization
 
@@ -97,7 +103,6 @@ describe('mod()', () => {
 // ── Ball ─────────────────────────────────────────────────────
 
 describe('Ball', () => {
-
     // ── Initialization ───────────────────────────────────────
 
     describe('initialization', () => {
@@ -111,12 +116,12 @@ describe('Ball', () => {
         });
 
         it.each([
-            { prop: 'radius',    expected: BALL_RADIUS,     label: 'correct radius' },
-            { prop: 'grounded',  expected: false,           label: 'starts airborne' },
-            { prop: 'color',     expected: PALETTE.BALL,    label: 'default color' },
+            { prop: 'radius', expected: BALL_RADIUS, label: 'correct radius' },
+            { prop: 'grounded', expected: false, label: 'starts airborne' },
+            { prop: 'color', expected: PALETTE.BALL, label: 'default color' },
             { prop: 'glowColor', expected: PALETTE.BALL_GLOW, label: 'default glow' },
-            { prop: 'pauseNum',  expected: -1,              label: 'not paused' },
-            { prop: 'type',      expected: 0,               label: 'type is BALL (0)' },
+            { prop: 'pauseNum', expected: -1, label: 'not paused' },
+            { prop: 'type', expected: 0, label: 'type is BALL (0)' },
         ])('$label', ({ prop, expected }) => {
             // Arrange & Act
             const { ball } = createBallWithPlayers();
@@ -267,13 +272,13 @@ describe('Ball', () => {
 
     describe('reset()', () => {
         it.each([
-            { prop: 'x',        expected: 0,              label: 'x returns to 0' },
-            { prop: 'y',        expected: 0,              label: 'y returns to 0' },
-            { prop: 'radius',   expected: BALL_RADIUS,    label: 'radius restored' },
-            { prop: 'color',    expected: PALETTE.BALL,    label: 'color reset' },
+            { prop: 'x', expected: 0, label: 'x returns to 0' },
+            { prop: 'y', expected: 0, label: 'y returns to 0' },
+            { prop: 'radius', expected: BALL_RADIUS, label: 'radius restored' },
+            { prop: 'color', expected: PALETTE.BALL, label: 'color reset' },
             { prop: 'glowColor', expected: PALETTE.BALL_GLOW, label: 'glow color reset' },
-            { prop: 'grounded', expected: false,           label: 'not grounded' },
-            { prop: 'pauseNum', expected: -1,              label: 'pause cleared' },
+            { prop: 'grounded', expected: false, label: 'not grounded' },
+            { prop: 'pauseNum', expected: -1, label: 'pause cleared' },
         ])('$label', ({ prop, expected }) => {
             // Arrange
             const { ball } = createBallWithPlayers();
@@ -327,7 +332,7 @@ describe('Ball', () => {
     describe('handlePoints() — scoring', () => {
         it.each([
             { angle: Math.PI, scorer: 'player1', label: 'ball in P1 territory → P1 scores' },
-            { angle: 0,       scorer: 'player2', label: 'ball in P2 territory → P2 scores' },
+            { angle: 0, scorer: 'player2', label: 'ball in P2 territory → P2 scores' },
         ])('$label', ({ angle, scorer }) => {
             // Arrange
             const { ball, player1, player2 } = setupGroundedBallAtAngle(angle);
@@ -366,7 +371,7 @@ describe('Ball', () => {
 
         it.each([
             { angle: Math.PI, playerKey: 'player1', label: 'P1 color on P1 score' },
-            { angle: 0,       playerKey: 'player2', label: 'P2 color on P2 score' },
+            { angle: 0, playerKey: 'player2', label: 'P2 color on P2 score' },
         ])('ball changes to $label', ({ angle, playerKey }) => {
             // Arrange
             const { ball, player1, player2 } = setupGroundedBallAtAngle(angle);
@@ -381,9 +386,27 @@ describe('Ball', () => {
         });
 
         it.each([
-            { condition: 'hit',      setup: (b) => { b.hit = true; },      label: 'ball was hit' },
-            { condition: 'paused',   setup: (b) => { b.pauseNum = 100; },  label: 'already paused' },
-            { condition: 'airborne', setup: (b) => { b.grounded = false; }, label: 'ball is airborne' },
+            {
+                condition: 'hit',
+                setup: (b) => {
+                    b.hit = true;
+                },
+                label: 'ball was hit',
+            },
+            {
+                condition: 'paused',
+                setup: (b) => {
+                    b.pauseNum = 100;
+                },
+                label: 'already paused',
+            },
+            {
+                condition: 'airborne',
+                setup: (b) => {
+                    b.grounded = false;
+                },
+                label: 'ball is airborne',
+            },
         ])('does not score when $label', ({ setup }) => {
             // Arrange
             const { ball, player1, player2 } = setupGroundedBallAtAngle(Math.PI);
@@ -416,10 +439,10 @@ describe('Ball', () => {
 
     describe('handlePoints() — win conditions', () => {
         it.each([
-            { p1: 23, p2: 0,  ends: false, label: '24-0: no win (< WIN_SCORE)' },
-            { p1: 24, p2: 0,  ends: true,  winner: 1, label: '25-0: P1 wins' },
+            { p1: 23, p2: 0, ends: false, label: '24-0: no win (< WIN_SCORE)' },
+            { p1: 24, p2: 0, ends: true, winner: 1, label: '25-0: P1 wins' },
             { p1: 24, p2: 24, ends: false, label: '25-24: no win (win-by-2 rule)' },
-            { p1: 25, p2: 24, ends: true,  winner: 1, label: '26-24: P1 wins (diff=2)' },
+            { p1: 25, p2: 24, ends: true, winner: 1, label: '26-24: P1 wins (diff=2)' },
             { p1: 29, p2: 29, ends: false, label: '30-29: no win (deuce)' },
         ])('$label', ({ p1, p2, ends, winner }) => {
             // Arrange
@@ -587,9 +610,9 @@ describe('Ball', () => {
 
     describe('draw()', () => {
         it.each([
-            { radius: 10,  shouldDraw: true,  label: 'draws when radius > 0' },
-            { radius: 0,   shouldDraw: false, label: 'does not draw when radius = 0' },
-            { radius: -1,  shouldDraw: false, label: 'does not draw when radius < 0' },
+            { radius: 10, shouldDraw: true, label: 'draws when radius > 0' },
+            { radius: 0, shouldDraw: false, label: 'does not draw when radius = 0' },
+            { radius: -1, shouldDraw: false, label: 'does not draw when radius < 0' },
         ])('$label', ({ radius, shouldDraw }) => {
             // Arrange
             const { ball } = createBallWithPlayers();

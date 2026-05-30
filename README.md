@@ -10,10 +10,10 @@ During my A-Levels, my friends and I used to kill a lot of time during free peri
 
 Two players are inside a rotating cylinder in space. Hit the ball into your opponent's territory to score. The more points you score, the smaller your territory gets. First to 25, win by 2.
 
-| | Player 1 | Player 2 |
-|---|---|---|
-| Move | Arrow keys | A / D |
-| Jump | Up arrow | W |
+|      | Player 1   | Player 2 |
+| ---- | ---------- | -------- |
+| Move | Arrow keys | A / D    |
+| Jump | Up arrow   | W        |
 
 ## Physics
 

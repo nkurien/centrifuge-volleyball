@@ -1,9 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import { installDomMocks } from './mocks.js';
-import {
-    CYLINDER_ANG_VELOCITY, CYLINDER_CAM_ANG_VELOCITY,
-    WIN_SCORE,
-} from '../src/js/config.js';
+import { CYLINDER_ANG_VELOCITY, CYLINDER_CAM_ANG_VELOCITY, WIN_SCORE } from '../src/js/config.js';
 
 // Game.js has `window.onload = ...` at module scope, so we must install
 // DOM mocks BEFORE the dynamic import.
@@ -25,18 +22,17 @@ beforeEach(() => {
 // ── Tests ────────────────────────────────────────────────────
 
 describe('Game', () => {
-
     // ── Initialization ───────────────────────────────────────
 
     describe('initialization', () => {
         it.each([
-            { prop: 'cylinderAngle', expected: 0,     label: 'cylinder angle starts at 0' },
-            { prop: 'camAngle',      expected: 0,     label: 'camera angle starts at 0' },
-            { prop: 'gameStarted',   expected: false,  label: 'game not started' },
-            { prop: 'gameEnded',     expected: false,  label: 'game not ended' },
-            { prop: 'winner',        expected: -1,     label: 'no winner' },
-            { prop: 'gameScore',     expected: WIN_SCORE, label: `win score is ${WIN_SCORE}` },
-            { prop: 'highPerformance', expected: true,  label: 'high perf mode on' },
+            { prop: 'cylinderAngle', expected: 0, label: 'cylinder angle starts at 0' },
+            { prop: 'camAngle', expected: 0, label: 'camera angle starts at 0' },
+            { prop: 'gameStarted', expected: false, label: 'game not started' },
+            { prop: 'gameEnded', expected: false, label: 'game not ended' },
+            { prop: 'winner', expected: -1, label: 'no winner' },
+            { prop: 'gameScore', expected: WIN_SCORE, label: `win score is ${WIN_SCORE}` },
+            { prop: 'highPerformance', expected: true, label: 'high perf mode on' },
         ])('$label', ({ prop, expected }) => {
             // Arrange — game created in beforeEach
 
@@ -117,8 +113,8 @@ describe('Game', () => {
         });
 
         it.each([
-            { p1: 10, p2: 1,  label: 'P1 leading → P1 gets smaller territory' },
-            { p1: 20, p2: 5,  label: 'P1 far ahead → P1 gets much smaller territory' },
+            { p1: 10, p2: 1, label: 'P1 leading → P1 gets smaller territory' },
+            { p1: 20, p2: 5, label: 'P1 far ahead → P1 gets much smaller territory' },
         ])('$label', ({ p1, p2 }) => {
             // Arrange
             game.player1.score = p1;
@@ -249,10 +245,10 @@ describe('Game', () => {
         });
 
         it.each([
-            { prop: 'gameEnded',     expected: false, label: 'clears gameEnded' },
-            { prop: 'winner',        expected: -1,    label: 'resets winner' },
-            { prop: 'cylinderAngle', expected: 0,     label: 'resets cylinder angle' },
-            { prop: 'camAngle',      expected: 0,     label: 'resets camera angle' },
+            { prop: 'gameEnded', expected: false, label: 'clears gameEnded' },
+            { prop: 'winner', expected: -1, label: 'resets winner' },
+            { prop: 'cylinderAngle', expected: 0, label: 'resets cylinder angle' },
+            { prop: 'camAngle', expected: 0, label: 'resets camera angle' },
         ])('$label', ({ prop, expected }) => {
             // Arrange
             game.gameEnded = true;

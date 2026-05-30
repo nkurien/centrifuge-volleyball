@@ -3,9 +3,15 @@
 // score display rotated with camera, circle-circle intersection geometry.
 
 import {
-    CYLINDER_RADIUS, PLAYER_RADIUS, PLAYER_MAX_VELOCITY,
-    PLAYER_ANG_ACCEL, PLAYER_JUMP_POWER, PLAYER_FRICTION,
-    CONTROLS, PLAYER_COLORS, PALETTE,
+    CYLINDER_RADIUS,
+    PLAYER_RADIUS,
+    PLAYER_MAX_VELOCITY,
+    PLAYER_ANG_ACCEL,
+    PLAYER_JUMP_POWER,
+    PLAYER_FRICTION,
+    CONTROLS,
+    PLAYER_COLORS,
+    PALETTE,
 } from './config.js';
 
 export class Player {
@@ -14,8 +20,8 @@ export class Player {
         this.playerNumber = playerNumber;
 
         // Initial position on the cylinder wall
-        this.x = CYLINDER_RADIUS * Math.cos(2 * Math.PI * playerNumber / 2 + Math.PI);
-        this.y = CYLINDER_RADIUS * Math.sin(2 * Math.PI * playerNumber / 2 + Math.PI);
+        this.x = CYLINDER_RADIUS * Math.cos((2 * Math.PI * playerNumber) / 2 + Math.PI);
+        this.y = CYLINDER_RADIUS * Math.sin((2 * Math.PI * playerNumber) / 2 + Math.PI);
         this.angle = Math.atan2(this.y, this.x);
 
         // Movement
@@ -113,16 +119,17 @@ export class Player {
         this.drawnAngle = this.angle;
 
         // Compute circle-circle intersection geometry (law of cosines / sines)
-        this.cylinderIntersectAng = 2 * Math.acos(
-            1 - 0.5 * Math.pow(this.radius / CYLINDER_RADIUS, 2)
-        );
-        this.playerIntersectAng = 2 * Math.asin(
-            (CYLINDER_RADIUS / this.radius) * Math.sin(this.cylinderIntersectAng / 2)
-        );
+        this.cylinderIntersectAng =
+            2 * Math.acos(1 - 0.5 * Math.pow(this.radius / CYLINDER_RADIUS, 2));
+        this.playerIntersectAng =
+            2 *
+            Math.asin((CYLINDER_RADIUS / this.radius) * Math.sin(this.cylinderIntersectAng / 2));
 
         // Center of the cylinder-radius arc that forms the flat side of the crescent
-        this.cylinderCircleCenterX = this.x - CYLINDER_RADIUS * Math.cos(this.drawnAngle + this.game.cylinderAngle);
-        this.cylinderCircleCenterY = this.y - CYLINDER_RADIUS * Math.sin(this.drawnAngle + this.game.cylinderAngle);
+        this.cylinderCircleCenterX =
+            this.x - CYLINDER_RADIUS * Math.cos(this.drawnAngle + this.game.cylinderAngle);
+        this.cylinderCircleCenterY =
+            this.y - CYLINDER_RADIUS * Math.sin(this.drawnAngle + this.game.cylinderAngle);
 
         // Draw crescent shape with glow
         ctx.save();
@@ -138,7 +145,7 @@ export class Player {
             CYLINDER_RADIUS,
             this.drawnAngle + this.game.cylinderAngle - this.cylinderIntersectAng / 2,
             this.drawnAngle + this.game.cylinderAngle + this.cylinderIntersectAng / 2,
-            false
+            false,
         );
 
         ctx.arc(
@@ -147,7 +154,7 @@ export class Player {
             this.radius,
             this.drawnAngle + this.game.cylinderAngle - this.playerIntersectAng / 2 + Math.PI,
             this.drawnAngle + this.game.cylinderAngle + this.playerIntersectAng / 2 + Math.PI,
-            false
+            false,
         );
 
         ctx.fillStyle = this.color;
@@ -156,8 +163,10 @@ export class Player {
 
         // Draw score text on the player body, rotated with camera
         ctx.fillStyle = PALETTE.BG;
-        const centerX = this.x - (this.radius / 2) * Math.cos(this.drawnAngle + this.game.cylinderAngle);
-        const centerY = this.y - (this.radius / 2) * Math.sin(this.drawnAngle + this.game.cylinderAngle);
+        const centerX =
+            this.x - (this.radius / 2) * Math.cos(this.drawnAngle + this.game.cylinderAngle);
+        const centerY =
+            this.y - (this.radius / 2) * Math.sin(this.drawnAngle + this.game.cylinderAngle);
 
         ctx.translate(centerX, centerY);
         ctx.rotate(this.game.camAngle);

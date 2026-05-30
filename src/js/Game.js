@@ -3,10 +3,16 @@
 // Supports restart on game over via click or keypress.
 
 import {
-    CYLINDER_RADIUS, CYLINDER_ANG_VELOCITY, CYLINDER_CAM_ANG_VELOCITY,
-    CYLINDER_EDGE_WIDTH, WIN_SCORE,
-    CANVAS_SIZE, HALF_CANVAS, STAR_COUNT,
-    CONTROLS, PALETTE,
+    CYLINDER_RADIUS,
+    CYLINDER_ANG_VELOCITY,
+    CYLINDER_CAM_ANG_VELOCITY,
+    CYLINDER_EDGE_WIDTH,
+    WIN_SCORE,
+    CANVAS_SIZE,
+    HALF_CANVAS,
+    STAR_COUNT,
+    CONTROLS,
+    PALETTE,
 } from './config.js';
 import { Player } from './Player.js';
 import { Ball } from './Ball.js';
@@ -70,7 +76,10 @@ export class Game {
         document.addEventListener('keydown', this._onKeyDown);
         document.addEventListener('keyup', this._onKeyUp);
         this.canvas.addEventListener('click', () => {
-            if (!this.gameStarted) { this.gameStarted = true; return; }
+            if (!this.gameStarted) {
+                this.gameStarted = true;
+                return;
+            }
             if (this.gameEnded) this.restart();
         });
 
@@ -80,19 +89,29 @@ export class Game {
     }
 
     setupTouchControls() {
-        document.querySelectorAll('.touch-btn').forEach(btn => {
+        document.querySelectorAll('.touch-btn').forEach((btn) => {
             const playerNum = btn.dataset.player;
             const action = btn.dataset.action;
 
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                if (!this.gameStarted) { this.gameStarted = true; return; }
-                if (this.gameEnded) { this.restart(); return; }
-                const player = playerNum === '1' ? this.player1 : this.player2;
-                if (action === 'jump') player.jump();
-                else if (action === 'left') player.keyLeftPressed = true;
-                else if (action === 'right') player.keyRightPressed = true;
-            }, { passive: false });
+            btn.addEventListener(
+                'touchstart',
+                (e) => {
+                    e.preventDefault();
+                    if (!this.gameStarted) {
+                        this.gameStarted = true;
+                        return;
+                    }
+                    if (this.gameEnded) {
+                        this.restart();
+                        return;
+                    }
+                    const player = playerNum === '1' ? this.player1 : this.player2;
+                    if (action === 'jump') player.jump();
+                    else if (action === 'left') player.keyLeftPressed = true;
+                    else if (action === 'right') player.keyRightPressed = true;
+                },
+                { passive: false },
+            );
 
             const release = (e) => {
                 e.preventDefault();
@@ -119,12 +138,12 @@ export class Game {
         const code = e.code;
 
         // Player 1
-        if (code === this.player1.keyLeft)  this.player1.keyLeftPressed = true;
+        if (code === this.player1.keyLeft) this.player1.keyLeftPressed = true;
         if (code === this.player1.keyRight) this.player1.keyRightPressed = true;
         if (code === this.player1.keyJump && this.player1.grounded) this.player1.jump();
 
         // Player 2
-        if (code === this.player2.keyLeft)  this.player2.keyLeftPressed = true;
+        if (code === this.player2.keyLeft) this.player2.keyLeftPressed = true;
         if (code === this.player2.keyRight) this.player2.keyRightPressed = true;
         if (code === this.player2.keyJump && this.player2.grounded) this.player2.jump();
     }
@@ -132,10 +151,10 @@ export class Game {
     onKeyUp(e) {
         const code = e.code;
 
-        if (code === this.player1.keyLeft)  this.player1.keyLeftPressed = false;
+        if (code === this.player1.keyLeft) this.player1.keyLeftPressed = false;
         if (code === this.player1.keyRight) this.player1.keyRightPressed = false;
 
-        if (code === this.player2.keyLeft)  this.player2.keyLeftPressed = false;
+        if (code === this.player2.keyLeft) this.player2.keyLeftPressed = false;
         if (code === this.player2.keyRight) this.player2.keyRightPressed = false;
     }
 
@@ -264,8 +283,14 @@ export class Game {
         // Player 1 territory
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.arc(0, 0, CYLINDER_RADIUS + 4, angle,
-            angle + this.player1.fraction * 2 * Math.PI, false);
+        ctx.arc(
+            0,
+            0,
+            CYLINDER_RADIUS + 4,
+            angle,
+            angle + this.player1.fraction * 2 * Math.PI,
+            false,
+        );
         ctx.fillStyle = `rgba(${this.player1.r},${this.player1.g},${this.player1.b},${opacity})`;
         ctx.fill();
         ctx.stroke();
@@ -274,8 +299,14 @@ export class Game {
         angle += this.player1.fraction * 2 * Math.PI;
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.arc(0, 0, CYLINDER_RADIUS + 4, angle,
-            angle + this.player2.fraction * 2 * Math.PI, false);
+        ctx.arc(
+            0,
+            0,
+            CYLINDER_RADIUS + 4,
+            angle,
+            angle + this.player2.fraction * 2 * Math.PI,
+            false,
+        );
         ctx.fillStyle = `rgba(${this.player2.r},${this.player2.g},${this.player2.b},${opacity})`;
         ctx.fill();
         ctx.stroke();
@@ -297,8 +328,10 @@ export class Game {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, this.canvas.width / 2, this.canvas.height / 2);
 
-        const w = 300, h = 96;
-        const x = -w / 2, y = -h / 2;
+        const w = 300,
+            h = 96;
+        const x = -w / 2,
+            y = -h / 2;
 
         // Card
         ctx.fillStyle = PALETTE.SURFACE;
@@ -356,7 +389,8 @@ export class Game {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, this.canvas.width / 2, this.canvas.height / 2);
 
-        const w = 280, h = 44;
+        const w = 280,
+            h = 44;
 
         ctx.fillStyle = PALETTE.SURFACE;
         ctx.beginPath();

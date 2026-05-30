@@ -2,9 +2,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { Player } from '../src/js/Player.js';
 import { createMockGame, installDomMocks } from './mocks.js';
 import {
-    CYLINDER_RADIUS, PLAYER_RADIUS, PLAYER_MAX_VELOCITY,
-    PLAYER_ANG_ACCEL, PLAYER_JUMP_POWER, PLAYER_FRICTION,
-    CONTROLS, PLAYER_COLORS,
+    CYLINDER_RADIUS,
+    PLAYER_RADIUS,
+    PLAYER_MAX_VELOCITY,
+    PLAYER_ANG_ACCEL,
+    PLAYER_JUMP_POWER,
+    PLAYER_FRICTION,
+    CONTROLS,
+    PLAYER_COLORS,
 } from '../src/js/config.js';
 
 beforeEach(() => {
@@ -26,7 +31,6 @@ function distFromOrigin(player) {
 // ── Tests ────────────────────────────────────────────────────
 
 describe('Player', () => {
-
     // ── Initialization ───────────────────────────────────────
 
     describe('initialization', () => {
@@ -46,8 +50,8 @@ describe('Player', () => {
             const { player } = createPlayer(num);
 
             // Assert — position matches the +π offset formula
-            const expectedX = CYLINDER_RADIUS * Math.cos(2 * Math.PI * num / 2 + Math.PI);
-            const expectedY = CYLINDER_RADIUS * Math.sin(2 * Math.PI * num / 2 + Math.PI);
+            const expectedX = CYLINDER_RADIUS * Math.cos((2 * Math.PI * num) / 2 + Math.PI);
+            const expectedY = CYLINDER_RADIUS * Math.sin((2 * Math.PI * num) / 2 + Math.PI);
             expect(player.x).toBeCloseTo(expectedX);
             expect(player.y).toBeCloseTo(expectedY);
         });
@@ -134,7 +138,7 @@ describe('Player', () => {
 
     describe('grounded movement', () => {
         it.each([
-            { key: 'keyLeftPressed',  direction: 'positive', check: (v) => v > 0 },
+            { key: 'keyLeftPressed', direction: 'positive', check: (v) => v > 0 },
             { key: 'keyRightPressed', direction: 'negative', check: (v) => v < 0 },
         ])('$key accelerates angular velocity in $direction direction', ({ key, check }) => {
             // Arrange
@@ -265,8 +269,7 @@ describe('Player', () => {
 
             // Assert — dot product with radial-outward should be negative (moving inward)
             const radialComponent =
-                player.xVelocity * Math.cos(wallAngle) +
-                player.yVelocity * Math.sin(wallAngle);
+                player.xVelocity * Math.cos(wallAngle) + player.yVelocity * Math.sin(wallAngle);
             expect(radialComponent).toBeLessThan(0);
         });
 
@@ -281,14 +284,13 @@ describe('Player', () => {
 
             // Assert
             const speed = Math.sqrt(
-                player.xVelocity * player.xVelocity +
-                player.yVelocity * player.yVelocity
+                player.xVelocity * player.xVelocity + player.yVelocity * player.yVelocity,
             );
             expect(speed).toBeGreaterThan(0);
         });
 
         it.each([
-            { angVel: 0.05,  label: 'positive angular velocity' },
+            { angVel: 0.05, label: 'positive angular velocity' },
             { angVel: -0.05, label: 'negative angular velocity' },
         ])('jump speed includes player $label', ({ angVel }) => {
             // Arrange
@@ -301,8 +303,7 @@ describe('Player', () => {
 
             // Assert — speed should differ from a zero-angVel jump
             const speed = Math.sqrt(
-                player.xVelocity * player.xVelocity +
-                player.yVelocity * player.yVelocity
+                player.xVelocity * player.xVelocity + player.yVelocity * player.yVelocity,
             );
             expect(speed).toBeGreaterThan(0);
         });

@@ -1,4 +1,6 @@
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
 }
 
@@ -6,7 +8,10 @@ body {
     margin: 0;
     background: #1d1e20;
     color: #dadadb;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
     font-size: 18px;
     min-height: 100vh;
     display: flex;
@@ -92,8 +97,12 @@ header p {
     margin-right: 6px;
 }
 
-.player-controls[data-player="1"] .player-label { color: #FF6B2B; }
-.player-controls[data-player="2"] .player-label { color: #2979ff; }
+.player-controls[data-player='1'] .player-label {
+    color: #ff6b2b;
+}
+.player-controls[data-player='2'] .player-label {
+    color: #2979ff;
+}
 
 kbd {
     display: inline-flex;
@@ -147,8 +156,18 @@ kbd {
 }
 
 /* Centre button doubles as player label */
-#touch-p1 .touch-jump { color: #FF6B2B; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.04em; }
-#touch-p2 .touch-jump { color: #2979ff; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.04em; }
+#touch-p1 .touch-jump {
+    color: #ff6b2b;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+#touch-p2 .touch-jump {
+    color: #2979ff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
 
 /* ── Mobile layout (touch devices) ──────────────────────────── */
 

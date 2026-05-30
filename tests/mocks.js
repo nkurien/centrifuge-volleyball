@@ -104,7 +104,7 @@ export function createMockGame(overrides = {}) {
         gameScore: 25,
         num: 1150,
         highPerformance: true,
-        player1: null,  // set after creating players
+        player1: null, // set after creating players
         player2: null,
         ball: null,
         setFractions: vi.fn(),

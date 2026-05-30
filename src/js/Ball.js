@@ -3,8 +3,13 @@
 // territory scoring with cylinderAngle offset, shrink animation.
 
 import {
-    CYLINDER_RADIUS, BALL_RADIUS, BALL_INITIAL_SPEED, BALL_FRICTION,
-    WIN_SCORE, MIN_SCORE_DIFFERENCE, PALETTE,
+    CYLINDER_RADIUS,
+    BALL_RADIUS,
+    BALL_INITIAL_SPEED,
+    BALL_FRICTION,
+    WIN_SCORE,
+    MIN_SCORE_DIFFERENCE,
+    PALETTE,
 } from './config.js';
 import { Vector } from './Vector.js';
 
@@ -47,8 +52,12 @@ export class Ball {
 
             // Land on cylinder wall
             if (Math.sqrt(this.x * this.x + this.y * this.y) >= CYLINDER_RADIUS - this.radius) {
-                this.x = (CYLINDER_RADIUS - this.radius) * Math.cos(this.angle + this.game.cylinderAngle);
-                this.y = (CYLINDER_RADIUS - this.radius) * Math.sin(this.angle + this.game.cylinderAngle);
+                this.x =
+                    (CYLINDER_RADIUS - this.radius) *
+                    Math.cos(this.angle + this.game.cylinderAngle);
+                this.y =
+                    (CYLINDER_RADIUS - this.radius) *
+                    Math.sin(this.angle + this.game.cylinderAngle);
                 this.grounded = true;
             }
         }
@@ -56,8 +65,10 @@ export class Ball {
         if (this.grounded) {
             this.angle += this.angularVelocity;
             this.angularVelocity *= BALL_FRICTION;
-            this.x = (CYLINDER_RADIUS - this.radius) * Math.cos(this.angle + this.game.cylinderAngle);
-            this.y = (CYLINDER_RADIUS - this.radius) * Math.sin(this.angle + this.game.cylinderAngle);
+            this.x =
+                (CYLINDER_RADIUS - this.radius) * Math.cos(this.angle + this.game.cylinderAngle);
+            this.y =
+                (CYLINDER_RADIUS - this.radius) * Math.sin(this.angle + this.game.cylinderAngle);
         }
     }
 
@@ -82,13 +93,23 @@ export class Ball {
                 const angleFromPlayerCenter = Math.atan2(this.y - player.y, this.x - player.x);
                 const angleFromCylinderCircleCenter = Math.atan2(
                     this.y - player.cylinderCircleCenterY,
-                    this.x - player.cylinderCircleCenterX
+                    this.x - player.cylinderCircleCenterX,
                 );
 
-                const AFPCLowerBound = player.drawnAngle + this.game.cylinderAngle - player.playerIntersectAng / 2 + Math.PI;
-                const AFPCUpperBound = player.drawnAngle + this.game.cylinderAngle + player.playerIntersectAng / 2 + Math.PI;
-                const AFCCCLowerBound = player.drawnAngle + this.game.cylinderAngle - player.cylinderIntersectAng / 2;
-                const AFCCCUpperBound = player.drawnAngle + this.game.cylinderAngle + player.cylinderIntersectAng / 2;
+                const AFPCLowerBound =
+                    player.drawnAngle +
+                    this.game.cylinderAngle -
+                    player.playerIntersectAng / 2 +
+                    Math.PI;
+                const AFPCUpperBound =
+                    player.drawnAngle +
+                    this.game.cylinderAngle +
+                    player.playerIntersectAng / 2 +
+                    Math.PI;
+                const AFCCCLowerBound =
+                    player.drawnAngle + this.game.cylinderAngle - player.cylinderIntersectAng / 2;
+                const AFCCCUpperBound =
+                    player.drawnAngle + this.game.cylinderAngle + player.cylinderIntersectAng / 2;
 
                 const AFPCDiff = mod(angleFromPlayerCenter - AFPCLowerBound, 2 * Math.PI);
                 const AFPCDiffMax = mod(AFPCUpperBound - AFPCLowerBound, 2 * Math.PI);
@@ -108,28 +129,67 @@ export class Ball {
                 } else if (AFPCDiff - AFPCDiffMax >= (2 * Math.PI - AFPCDiffMax) / 2) {
                     // Left corner
                     cornerCollision = true;
-                    centerX = player.x + player.radius * Math.cos(player.drawnAngle + this.game.cylinderAngle - player.playerIntersectAng / 2 + Math.PI);
-                    centerY = player.y + player.radius * Math.sin(player.drawnAngle + this.game.cylinderAngle - player.playerIntersectAng / 2 + Math.PI);
+                    centerX =
+                        player.x +
+                        player.radius *
+                            Math.cos(
+                                player.drawnAngle +
+                                    this.game.cylinderAngle -
+                                    player.playerIntersectAng / 2 +
+                                    Math.PI,
+                            );
+                    centerY =
+                        player.y +
+                        player.radius *
+                            Math.sin(
+                                player.drawnAngle +
+                                    this.game.cylinderAngle -
+                                    player.playerIntersectAng / 2 +
+                                    Math.PI,
+                            );
                     centerRadius = 0;
                     collisionVector = new Vector(this.x - centerX, this.y - centerY);
                 } else {
                     // Right corner
                     cornerCollision = true;
-                    centerX = player.x + player.radius * Math.cos(player.drawnAngle + this.game.cylinderAngle + player.playerIntersectAng / 2 + Math.PI);
-                    centerY = player.y + player.radius * Math.sin(player.drawnAngle + this.game.cylinderAngle + player.playerIntersectAng / 2 + Math.PI);
+                    centerX =
+                        player.x +
+                        player.radius *
+                            Math.cos(
+                                player.drawnAngle +
+                                    this.game.cylinderAngle +
+                                    player.playerIntersectAng / 2 +
+                                    Math.PI,
+                            );
+                    centerY =
+                        player.y +
+                        player.radius *
+                            Math.sin(
+                                player.drawnAngle +
+                                    this.game.cylinderAngle +
+                                    player.playerIntersectAng / 2 +
+                                    Math.PI,
+                            );
                     centerRadius = 0;
                     collisionVector = new Vector(this.x - centerX, this.y - centerY);
                 }
 
                 // If player is grounded, reconstruct their velocity from wall rotation
                 if (player.grounded) {
-                    const speed = CYLINDER_RADIUS * (this.game.angVelocity + player.angularVelocity);
-                    player.xVelocity = speed * Math.cos(this.game.cylinderAngle + player.angle + Math.PI / 2);
-                    player.yVelocity = speed * Math.sin(this.game.cylinderAngle + player.angle + Math.PI / 2);
+                    const speed =
+                        CYLINDER_RADIUS * (this.game.angVelocity + player.angularVelocity);
+                    player.xVelocity =
+                        speed * Math.cos(this.game.cylinderAngle + player.angle + Math.PI / 2);
+                    player.yVelocity =
+                        speed * Math.sin(this.game.cylinderAngle + player.angle + Math.PI / 2);
 
-                    const ballSpeed = Math.sqrt(this.xVelocity * this.xVelocity + this.yVelocity * this.yVelocity);
-                    player.xVelocity += -ballSpeed * Math.cos(this.game.cylinderAngle + player.angle);
-                    player.yVelocity += -ballSpeed * Math.sin(this.game.cylinderAngle + player.angle);
+                    const ballSpeed = Math.sqrt(
+                        this.xVelocity * this.xVelocity + this.yVelocity * this.yVelocity,
+                    );
+                    player.xVelocity +=
+                        -ballSpeed * Math.cos(this.game.cylinderAngle + player.angle);
+                    player.yVelocity +=
+                        -ballSpeed * Math.sin(this.game.cylinderAngle + player.angle);
                 }
 
                 // Play hit sound
@@ -142,32 +202,34 @@ export class Ball {
 
                 // Project player velocity onto collision vector
                 const playerVelocityOnCollision = new Vector(collisionVector.x, collisionVector.y);
-                const multiplier = playerVelocity.dot(collisionVector) / collisionVector.dot(collisionVector);
+                const multiplier =
+                    playerVelocity.dot(collisionVector) / collisionVector.dot(collisionVector);
                 playerVelocityOnCollision.mult(multiplier);
 
                 const playerVelocityPerpCollision = new Vector(
                     playerVelocity.x - playerVelocityOnCollision.x,
-                    playerVelocity.y - playerVelocityOnCollision.y
+                    playerVelocity.y - playerVelocityOnCollision.y,
                 );
 
                 // Project ball velocity onto collision vector
                 const ballVelocityOnCollision = new Vector(collisionVector.x, collisionVector.y);
-                const ballMultiplier = ballVelocity.dot(collisionVector) / collisionVector.dot(collisionVector);
+                const ballMultiplier =
+                    ballVelocity.dot(collisionVector) / collisionVector.dot(collisionVector);
                 ballVelocityOnCollision.mult(ballMultiplier);
 
                 const ballVelocityPerpCollision = new Vector(
                     ballVelocity.x - ballVelocityOnCollision.x,
-                    ballVelocity.y - ballVelocityOnCollision.y
+                    ballVelocity.y - ballVelocityOnCollision.y,
                 );
 
                 // Swap collision components (elastic collision)
                 const newPlayerVelocity = new Vector(
                     playerVelocityPerpCollision.x + ballVelocityOnCollision.x,
-                    playerVelocityPerpCollision.y + ballVelocityOnCollision.y
+                    playerVelocityPerpCollision.y + ballVelocityOnCollision.y,
                 );
                 const newBallVelocity = new Vector(
                     ballVelocityPerpCollision.x + playerVelocityOnCollision.x,
-                    ballVelocityPerpCollision.y + playerVelocityOnCollision.y
+                    ballVelocityPerpCollision.y + playerVelocityOnCollision.y,
                 );
 
                 player.xVelocity = newPlayerVelocity.x;
@@ -192,7 +254,12 @@ export class Ball {
                         const newDistA = Math.sqrt(newDxA * newDxA + newDyA * newDyA);
                         const newDistB = Math.sqrt(newDxB * newDxB + newDyB * newDyB);
 
-                        if (!(newDistA < player.radius + this.radius && newDistB < CYLINDER_RADIUS + this.radius)) {
+                        if (
+                            !(
+                                newDistA < player.radius + this.radius &&
+                                newDistB < CYLINDER_RADIUS + this.radius
+                            )
+                        ) {
                             break;
                         }
 
@@ -213,7 +280,8 @@ export class Ball {
             const normalizedAngle = mod(Math.atan2(this.y, this.x), 2 * Math.PI);
 
             // Territory boundaries — includes cylinderAngle offset
-            const player1Start = this.game.cylinderAngle + Math.PI - this.game.player1.fraction * Math.PI;
+            const player1Start =
+                this.game.cylinderAngle + Math.PI - this.game.player1.fraction * Math.PI;
             const player1Territory = 2 * Math.PI * this.game.player1.fraction;
 
             // Normalize relative to player1's territory start
@@ -238,7 +306,8 @@ export class Ball {
 
             // Win by 2 rule
             const highestScore = Math.max(this.game.player1.score, this.game.player2.score);
-            const scoreDifference = highestScore - Math.min(this.game.player1.score, this.game.player2.score);
+            const scoreDifference =
+                highestScore - Math.min(this.game.player1.score, this.game.player2.score);
 
             if (highestScore >= this.game.gameScore && scoreDifference >= MIN_SCORE_DIFFERENCE) {
                 this.game.gameEnded = true;
