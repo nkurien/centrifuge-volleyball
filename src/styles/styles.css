@@ -21,10 +21,11 @@ body {
 }
 
 /* Canvas styling */
-#gameCanvas {
+#canv {
     border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 0.5rem;
     background: #000;
+    display: block;
 }
 
 /* Game info overlay */
@@ -37,6 +38,7 @@ body {
     border-radius: 0.5rem;
     font-size: 0.875rem;
     color: #94a3b8;
+    z-index: 1;
 }
 
 /* FPS counter */
@@ -46,14 +48,14 @@ body {
     color: #22c55e;
 }
 
-/* Add responsive design */
+/* Responsive */
 @media (max-width: 768px) {
     #game-container {
         margin: 1rem;
         padding: 0.5rem;
     }
-    
-    #gameCanvas {
+
+    #canv {
         width: 100%;
         height: auto;
     }

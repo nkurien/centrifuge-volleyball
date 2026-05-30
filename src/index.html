@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centrifuge Volleyball</title>
+    <meta name="description" content="A recreation of William Hoza's Centrifuge Volleyball — a two-player game on a rotating cylinder in space.">
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <div class="game-info">
+            <span id="fps">0</span> FPS
+        </div>
+        <canvas id="canv" width="637" height="637">
+            Your browser does not support the HTML5 canvas tag.
+        </canvas>
+    </div>
+
+    <audio id="hitSound" preload="auto">
+        <source src="assets/hit.ogg" type="audio/ogg">
+        <source src="assets/hit.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="oopsSound" preload="auto">
+        <source src="assets/oops.ogg" type="audio/ogg">
+        <source src="assets/oops.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="winSound" preload="auto">
+        <source src="assets/win.ogg" type="audio/ogg">
+        <source src="assets/win.mp3" type="audio/mpeg">
+    </audio>
+
+    <script type="module" src="js/Game.js"></script>
+</body>
+</html>
