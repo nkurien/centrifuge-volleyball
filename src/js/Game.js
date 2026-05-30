@@ -6,7 +6,7 @@ import {
     CYLINDER_RADIUS, CYLINDER_ANG_VELOCITY, CYLINDER_CAM_ANG_VELOCITY,
     CYLINDER_EDGE_WIDTH, WIN_SCORE,
     CANVAS_SIZE, HALF_CANVAS, STAR_COUNT,
-    CONTROLS,
+    CONTROLS, PALETTE,
 } from './config.js';
 import { Player } from './Player.js';
 import { Ball } from './Ball.js';
@@ -183,7 +183,7 @@ export class Game {
 
         // Clear with motion blur (or hard clear on low-perf)
         if (this.highPerformance) {
-            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillStyle = 'rgba(29,30,32,0.5)';
             ctx.fillRect(-HALF_CANVAS, -HALF_CANVAS, CANVAS_SIZE, CANVAS_SIZE);
         } else {
             ctx.clearRect(-HALF_CANVAS, -HALF_CANVAS, CANVAS_SIZE, CANVAS_SIZE);
@@ -191,8 +191,8 @@ export class Game {
 
         // Stars
         ctx.beginPath();
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = PALETTE.STAR;
+        ctx.lineWidth = 1.5;
         for (let i = 0; i < STAR_COUNT; i++) {
             ctx.moveTo(this.stars[i].x, this.stars[i].y);
             ctx.lineTo(this.stars[i].x + 1, this.stars[i].y + 1);
@@ -218,7 +218,7 @@ export class Game {
         ctx.lineWidth = 1;
 
         let angle = this.cylinderAngle + Math.PI - this.player1.fraction * Math.PI;
-        const opacity = this.highPerformance ? 0.2 : 0.35;
+        const opacity = this.highPerformance ? 0.07 : 0.12;
 
         // Player 1 territory
         ctx.beginPath();
@@ -239,24 +239,52 @@ export class Game {
         ctx.fill();
         ctx.stroke();
 
-        // Cylinder outline
+        // Cylinder outline — thin, subtle glow
+        ctx.save();
         ctx.beginPath();
         ctx.arc(0, 0, CYLINDER_RADIUS + 4, 0, 2 * Math.PI, false);
-        ctx.strokeStyle = '#FFFFFF';
+        ctx.strokeStyle = '#525252';
         ctx.lineWidth = CYLINDER_EDGE_WIDTH;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(82,82,82,0.6)';
         ctx.stroke();
+        ctx.restore();
     }
 
     drawGameOver(ctx) {
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(-175, -60, 350, 110);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '32px Arial';
+        // Reset accumulated rotation so the overlay sits upright
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, this.canvas.width / 2, this.canvas.height / 2);
+
+        const w = 300, h = 96;
+        const x = -w / 2, y = -h / 2;
+
+        // Card
+        ctx.fillStyle = PALETTE.SURFACE;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, 8);
+        ctx.fill();
+
+        ctx.strokeStyle = PALETTE.BORDER;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Winner text with player-color glow
+        const winnerGlow = this.winner === 1 ? 'rgba(255,107,43,0.55)' : 'rgba(41,121,255,0.55)';
         ctx.textAlign = 'center';
-        ctx.fillText(`Player ${this.winner} Wins!`, 0, -10);
-        ctx.font = '14px Arial';
-        ctx.fillStyle = '#aaaaaa';
-        ctx.fillText('Press any key or click to restart', 0, 30);
+        ctx.font = 'bold 26px system-ui, sans-serif';
+        ctx.fillStyle = PALETTE.TEXT;
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = winnerGlow;
+        ctx.fillText(`Player ${this.winner} wins`, 0, -8);
+        ctx.shadowBlur = 0;
+
+        // Subtitle
+        ctx.font = '13px system-ui, sans-serif';
+        ctx.fillStyle = PALETTE.TEXT_MUTED;
+        ctx.fillText('press any key or click to restart', 0, 28);
+
+        ctx.restore();
     }
 
     // ── Restart ──────────────────────────────────────────────

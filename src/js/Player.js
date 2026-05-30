@@ -5,7 +5,7 @@
 import {
     CYLINDER_RADIUS, PLAYER_RADIUS, PLAYER_MAX_VELOCITY,
     PLAYER_ANG_ACCEL, PLAYER_JUMP_POWER, PLAYER_FRICTION,
-    CONTROLS, PLAYER_COLORS,
+    CONTROLS, PLAYER_COLORS, PALETTE,
 } from './config.js';
 
 export class Player {
@@ -53,6 +53,7 @@ export class Player {
         this.g = color.g;
         this.b = color.b;
         this.color = `rgb(${this.r},${this.g},${this.b})`;
+        this.glow = color.glow;
 
         this.fraction = 1 / 2;
         this.targetFraction = this.fraction;
@@ -123,11 +124,14 @@ export class Player {
         this.cylinderCircleCenterX = this.x - CYLINDER_RADIUS * Math.cos(this.drawnAngle + this.game.cylinderAngle);
         this.cylinderCircleCenterY = this.y - CYLINDER_RADIUS * Math.sin(this.drawnAngle + this.game.cylinderAngle);
 
-        // Draw crescent shape: cylinder arc (flat side) then player arc (rounded side)
+        // Draw crescent shape with glow
+        ctx.save();
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = this.glow;
+
         ctx.beginPath();
         ctx.moveTo(this.x, this.y);
 
-        // Arc along the cylinder circle (the "flat" concave side hugging the wall)
         ctx.arc(
             this.cylinderCircleCenterX,
             this.cylinderCircleCenterY,
@@ -137,7 +141,6 @@ export class Player {
             false
         );
 
-        // Arc along the player circle (the outer convex side)
         ctx.arc(
             this.x,
             this.y,
@@ -149,9 +152,10 @@ export class Player {
 
         ctx.fillStyle = this.color;
         ctx.fill();
+        ctx.restore();
 
         // Draw score text on the player body, rotated with camera
-        ctx.fillStyle = '#000000';
+        ctx.fillStyle = PALETTE.BG;
         const centerX = this.x - (this.radius / 2) * Math.cos(this.drawnAngle + this.game.cylinderAngle);
         const centerY = this.y - (this.radius / 2) * Math.sin(this.drawnAngle + this.game.cylinderAngle);
 

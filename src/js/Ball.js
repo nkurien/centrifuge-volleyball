@@ -4,7 +4,7 @@
 
 import {
     CYLINDER_RADIUS, BALL_RADIUS, BALL_INITIAL_SPEED, BALL_FRICTION,
-    WIN_SCORE, MIN_SCORE_DIFFERENCE,
+    WIN_SCORE, MIN_SCORE_DIFFERENCE, PALETTE,
 } from './config.js';
 import { Vector } from './Vector.js';
 
@@ -32,7 +32,8 @@ export class Ball {
         this.angularVelocity = 0;
         this.grounded = false;
         this.type = 0; // CentrifugeObject_BALL
-        this.color = '#FFFFFF';
+        this.color = PALETTE.BALL;
+        this.glowColor = PALETTE.BALL_GLOW;
         this.pauseNum = -1;
         this.hit = false;
     }
@@ -225,12 +226,14 @@ export class Ball {
                     this.game.player1.winning = true;
                 }
                 this.color = this.game.player1.color;
+                this.glowColor = this.game.player1.glow;
             } else {
                 this.game.player2.score++;
                 if (this.game.player2.score >= this.game.gameScore) {
                     this.game.player2.winning = true;
                 }
                 this.color = this.game.player2.color;
+                this.glowColor = this.game.player2.glow;
             }
 
             // Win by 2 rule
@@ -263,7 +266,8 @@ export class Ball {
         this.x = 0;
         this.y = 0;
         this.radius = BALL_RADIUS;
-        this.color = '#FFFFFF';
+        this.color = PALETTE.BALL;
+        this.glowColor = PALETTE.BALL_GLOW;
         this.angle = Math.random() * 2 * Math.PI;
         this.xVelocity = BALL_INITIAL_SPEED * Math.cos(this.angle);
         this.yVelocity = BALL_INITIAL_SPEED * Math.sin(this.angle);
@@ -271,10 +275,14 @@ export class Ball {
 
     draw(ctx) {
         if (this.radius > 0) {
+            ctx.save();
+            ctx.shadowBlur = 14;
+            ctx.shadowColor = this.glowColor;
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
             ctx.fillStyle = this.color;
             ctx.fill();
+            ctx.restore();
         }
     }
 
