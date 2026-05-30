@@ -14,8 +14,8 @@ export class Player {
         this.playerNumber = playerNumber;
 
         // Initial position on the cylinder wall
-        this.x = CYLINDER_RADIUS * Math.cos(2 * Math.PI * playerNumber / 2);
-        this.y = CYLINDER_RADIUS * Math.sin(2 * Math.PI * playerNumber / 2);
+        this.x = CYLINDER_RADIUS * Math.cos(2 * Math.PI * playerNumber / 2 + Math.PI);
+        this.y = CYLINDER_RADIUS * Math.sin(2 * Math.PI * playerNumber / 2 + Math.PI);
         this.angle = Math.atan2(this.y, this.x);
 
         // Movement
