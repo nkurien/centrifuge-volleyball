@@ -27,9 +27,9 @@ export class Game {
         // Center coordinate system
         this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
 
-        // Start loop
-        this.lastTimestamp = null;
-        this.scheduleFrame();
+        // Start game loop
+        this.lastFrameTime = 0;
+        requestAnimationFrame((t) => this.timer(t));
     }
 
     initState() {
@@ -44,10 +44,6 @@ export class Game {
         this.num = 1150; // Frame counter — starts here to sync camera behaviour
         this.startTime = null;
         this.highPerformance = true;
-
-        // Fixed-timestep: original used setTimeout(30 - computeTime, min 17)
-        this.PHYSICS_STEP = 30; // ms per physics tick
-        this.accumulator = 0;
     }
 
     createObjects() {
@@ -124,32 +120,22 @@ export class Game {
     }
 
     // ── Game loop ────────────────────────────────────────────
+    // rAF for vsync alignment, throttled to ~30ms per step.
+    // Physics + render always happen together (never decoupled),
+    // matching the original's one-step-per-frame model.
 
-    scheduleFrame() {
-        requestAnimationFrame((ts) => this.tick(ts));
-    }
+    timer(timestamp) {
+        requestAnimationFrame((t) => this.timer(t));
 
-    tick(timestamp) {
-        this.scheduleFrame();
+        // Throttle: skip this frame if <28ms since last step.
+        // At 60fps (~16.7ms) this fires every 2nd frame = ~33ms.
+        // At 120fps (~8.3ms) this fires every 4th frame = ~33ms.
+        if (timestamp - this.lastFrameTime < 28) return;
+        this.lastFrameTime = timestamp;
 
-        if (this.lastTimestamp === null) this.lastTimestamp = timestamp;
-        const elapsed = timestamp - this.lastTimestamp;
-        this.lastTimestamp = timestamp;
-
-        // Fixed-timestep accumulator: the original game's physics constants
-        // (angVelocity=0.02, ball speed=2, etc.) were all tuned for ~30ms
-        // per step (setTimeout(30 - computeTime)). We accumulate real time
-        // and step physics in 30ms chunks to match that feel exactly,
-        // regardless of the display's refresh rate.
-        this.accumulator += elapsed;
-
-        while (this.accumulator >= this.PHYSICS_STEP) {
-            if (!this.gameEnded) {
-                this.update();
-            }
-            this.accumulator -= this.PHYSICS_STEP;
+        if (!this.gameEnded) {
+            this.update();
         }
-
         this.render();
     }
 
@@ -282,8 +268,8 @@ export class Game {
 
         this.initState();
         this.createObjects();
-        this.lastTimestamp = null;
-        // The rAF loop is already running, so no need to scheduleFrame again
+        this.lastFrameTime = 0;
+        // rAF loop is already running, no need to restart it
     }
 }
 
