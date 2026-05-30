@@ -49,6 +49,7 @@ header p {
     border-radius: 8px;
     border: 1px solid #333333;
     background: #1d1e20;
+    touch-action: none;
 }
 
 #fps-counter {
@@ -114,7 +115,109 @@ kbd {
     background: #333333;
 }
 
-@media (max-width: 680px) {
+/* ── Touch control zones (hidden on desktop) ─────────────────── */
+
+.touch-zone {
+    display: none;
+}
+
+.touch-btn {
+    background: #2e2e33;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    color: #dadadb;
+    font-size: 1.5rem;
+    width: 80px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.touch-btn:active {
+    background: #414244;
+}
+
+/* Jump button uses player accent colour */
+#touch-p1 .touch-jump {
+    border-color: #FF6B2B;
+    color: #FF6B2B;
+}
+
+#touch-p2 .touch-jump {
+    border-color: #2979ff;
+    color: #2979ff;
+}
+
+/* ── Mobile layout (touch devices) ──────────────────────────── */
+
+@media (pointer: coarse) {
+    body {
+        overflow: hidden;
+        height: 100dvh;
+        align-items: stretch;
+        justify-content: stretch;
+    }
+
+    #wrapper {
+        width: 100%;
+        height: 100%;
+        gap: 0;
+        padding: 0;
+        justify-content: space-between;
+        align-items: stretch;
+    }
+
+    header,
+    #controls {
+        display: none;
+    }
+
+    .touch-zone {
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        padding: 10px 24px;
+        background: #2e2e33;
+        flex-shrink: 0;
+    }
+
+    #touch-p2 {
+        transform: rotate(180deg);
+        border-bottom: 1px solid #333333;
+    }
+
+    #touch-p1 {
+        border-top: 1px solid #333333;
+    }
+
+    #game-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 0;
+        padding: 8px;
+    }
+
+    #canv {
+        /* Fill the available square, never overflow */
+        width: min(100%, calc(100dvh - 180px));
+        height: auto;
+        border-radius: 4px;
+    }
+
+    #fps-counter {
+        display: none;
+    }
+}
+
+@media (max-width: 680px) and (pointer: fine) {
     #canv {
         width: 100%;
         height: auto;

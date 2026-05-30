@@ -72,6 +72,37 @@ export class Game {
             if (!this.gameStarted) { this.gameStarted = true; return; }
             if (this.gameEnded) this.restart();
         });
+
+        if (window.matchMedia('(pointer: coarse)').matches) {
+            this.setupTouchControls();
+        }
+    }
+
+    setupTouchControls() {
+        document.querySelectorAll('.touch-btn').forEach(btn => {
+            const playerNum = btn.dataset.player;
+            const action = btn.dataset.action;
+
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (!this.gameStarted) { this.gameStarted = true; return; }
+                if (this.gameEnded) { this.restart(); return; }
+                const player = playerNum === '1' ? this.player1 : this.player2;
+                if (action === 'jump') player.jump();
+                else if (action === 'left') player.keyLeftPressed = true;
+                else if (action === 'right') player.keyRightPressed = true;
+            }, { passive: false });
+
+            const release = (e) => {
+                e.preventDefault();
+                const player = playerNum === '1' ? this.player1 : this.player2;
+                if (action === 'left') player.keyLeftPressed = false;
+                if (action === 'right') player.keyRightPressed = false;
+            };
+
+            btn.addEventListener('touchend', release, { passive: false });
+            btn.addEventListener('touchcancel', release, { passive: false });
+        });
     }
 
     onKeyDown(e) {
