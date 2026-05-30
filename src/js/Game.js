@@ -37,7 +37,7 @@ export class Game {
         this.camAngle = 0;
         this.angVelocity = CYLINDER_ANG_VELOCITY;
         this.camAngVelocity = CYLINDER_CAM_ANG_VELOCITY;
-        this.gameStarted = true;
+        this.gameStarted = false;
         this.gameEnded = false;
         this.winner = -1;
         this.gameScore = WIN_SCORE;
@@ -69,11 +69,16 @@ export class Game {
         document.addEventListener('keydown', this._onKeyDown);
         document.addEventListener('keyup', this._onKeyUp);
         this.canvas.addEventListener('click', () => {
+            if (!this.gameStarted) { this.gameStarted = true; return; }
             if (this.gameEnded) this.restart();
         });
     }
 
     onKeyDown(e) {
+        if (!this.gameStarted) {
+            this.gameStarted = true;
+            return;
+        }
         if (this.gameEnded) {
             this.restart();
             return;
@@ -133,6 +138,10 @@ export class Game {
         if (timestamp - this.lastFrameTime < 28) return;
         this.lastFrameTime = timestamp;
 
+        if (!this.gameStarted) {
+            this.renderStartScreen();
+            return;
+        }
         if (!this.gameEnded) {
             this.update();
         }
@@ -287,6 +296,53 @@ export class Game {
         ctx.restore();
     }
 
+    // ── Start screen ─────────────────────────────────────────
+
+    renderStartScreen() {
+        const ctx = this.ctx;
+
+        // Slowly drift the camera so the starfield feels alive
+        this.camAngle += this.camAngVelocity * 0.4;
+        ctx.rotate(-this.camAngVelocity * 0.4);
+
+        ctx.fillStyle = 'rgba(29,30,32,0.35)';
+        ctx.fillRect(-HALF_CANVAS, -HALF_CANVAS, CANVAS_SIZE, CANVAS_SIZE);
+
+        ctx.beginPath();
+        ctx.strokeStyle = PALETTE.STAR;
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < STAR_COUNT; i++) {
+            ctx.moveTo(this.stars[i].x, this.stars[i].y);
+            ctx.lineTo(this.stars[i].x + 1, this.stars[i].y + 1);
+        }
+        ctx.stroke();
+
+        this.drawStartCard(ctx);
+    }
+
+    drawStartCard(ctx) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, this.canvas.width / 2, this.canvas.height / 2);
+
+        const w = 280, h = 44;
+
+        ctx.fillStyle = PALETTE.SURFACE;
+        ctx.beginPath();
+        ctx.roundRect(-w / 2, -h / 2, w, h, 8);
+        ctx.fill();
+
+        ctx.strokeStyle = PALETTE.BORDER;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.textAlign = 'center';
+        ctx.font = '13px system-ui, sans-serif';
+        ctx.fillStyle = PALETTE.TEXT_MUTED;
+        ctx.fillText('press any key or click to start', 0, 6);
+
+        ctx.restore();
+    }
+
     // ── Restart ──────────────────────────────────────────────
 
     restart() {
@@ -295,6 +351,7 @@ export class Game {
         this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
 
         this.initState();
+        this.gameStarted = true;
         this.createObjects();
         this.lastFrameTime = 0;
         // rAF loop is already running, no need to restart it
