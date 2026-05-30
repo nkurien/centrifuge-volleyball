@@ -172,21 +172,23 @@ kbd {
         padding: 0;
         justify-content: space-between;
         align-items: stretch;
+        user-select: none;
+        -webkit-user-select: none;
     }
 
     header {
-        padding: 6px 0 2px;
+        padding: 8px 0 4px;
         flex-shrink: 0;
     }
 
     header h1 {
-        font-size: 0.8rem;
-        margin-bottom: 0;
+        font-size: 1.4rem;
+        margin-bottom: 2px;
     }
 
     header p {
         display: block;
-        font-size: 0.65rem;
+        font-size: 0.85rem;
     }
 
     #controls {
