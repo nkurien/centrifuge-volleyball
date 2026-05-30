@@ -50,6 +50,7 @@ header p {
     border: 1px solid #333333;
     background: #1d1e20;
     touch-action: none;
+    max-width: 100%; /* prevents mobile browser auto-zoom on load */
 }
 
 #fps-counter {
@@ -126,9 +127,11 @@ kbd {
     border: none;
     border-radius: 8px;
     color: #dadadb;
-    font-size: 1.5rem;
-    width: 80px;
-    height: 60px;
+    font-size: 1.8rem;
+    font-family: inherit;
+    width: 30%;
+    height: 75px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -143,9 +146,9 @@ kbd {
     background: #2e2e33;
 }
 
-/* Jump/label button uses player accent colour and smaller label font */
-#touch-p1 .touch-jump { color: #FF6B2B; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; }
-#touch-p2 .touch-jump { color: #2979ff; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; }
+/* Centre button doubles as player label */
+#touch-p1 .touch-jump { color: #FF6B2B; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.04em; }
+#touch-p2 .touch-jump { color: #2979ff; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.04em; }
 
 /* ── Mobile layout (touch devices) ──────────────────────────── */
 
@@ -218,10 +221,9 @@ kbd {
     }
 
     #canv {
-        /* Each touch zone is ~80px (60px button + 20px padding), two zones = 160px.
-           Container padding adds 16px. Total overhead: 176px.
-           Canvas is square, so take the smaller of width and available height. */
-        --canvas-size: min(calc(100vw - 16px), calc(100dvh - 224px));
+        /* Two touch zones at 75px + 20px padding each = 190px.
+           Header ~32px. Container padding 16px. Total ~238px. */
+        --canvas-size: min(calc(100vw - 16px), calc(100dvh - 254px));
         width: var(--canvas-size);
         height: var(--canvas-size);
         border-radius: 4px;
