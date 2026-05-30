@@ -178,7 +178,17 @@ kbd {
         align-items: stretch;
     }
 
-    header,
+    header {
+        padding: 6px 0 2px;
+        flex-shrink: 0;
+    }
+
+    header h1 {
+        font-size: 0.8rem;
+        margin-bottom: 0;
+    }
+
+    header p,
     #controls {
         display: none;
     }
@@ -186,8 +196,8 @@ kbd {
     .touch-zone {
         display: flex;
         align-items: center;
-        justify-content: space-around;
-        padding: 10px 24px;
+        justify-content: space-between;
+        padding: 10px 12px;
         background: #2e2e33;
         flex-shrink: 0;
     }
@@ -214,7 +224,7 @@ kbd {
         /* Each touch zone is ~80px (60px button + 20px padding), two zones = 160px.
            Container padding adds 16px. Total overhead: 176px.
            Canvas is square, so take the smaller of width and available height. */
-        --canvas-size: min(calc(100vw - 16px), calc(100dvh - 176px));
+        --canvas-size: min(calc(100vw - 16px), calc(100dvh - 206px));
         width: var(--canvas-size);
         height: var(--canvas-size);
         border-radius: 4px;
