@@ -20,6 +20,7 @@ export class Game {
         }
 
         this.ctx = this.canvas.getContext('2d');
+        this.isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
         this.initState();
         this.createObjects();
         this.setupInput();
@@ -369,7 +370,8 @@ export class Game {
         ctx.textAlign = 'center';
         ctx.font = '13px system-ui, sans-serif';
         ctx.fillStyle = PALETTE.TEXT_MUTED;
-        ctx.fillText('press any key or click to start', 0, 6);
+        const prompt = this.isTouchDevice ? 'tap to start' : 'press any key or click to start';
+        ctx.fillText(prompt, 0, 6);
 
         ctx.restore();
     }

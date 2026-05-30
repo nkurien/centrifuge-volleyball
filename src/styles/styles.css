@@ -157,9 +157,14 @@ kbd {
 /* ── Mobile layout (touch devices) ──────────────────────────── */
 
 @media (pointer: coarse) {
+    html {
+        height: 100dvh;
+    }
+
     body {
         overflow: hidden;
         height: 100dvh;
+        min-height: 100dvh;
         align-items: stretch;
         justify-content: stretch;
     }
@@ -206,9 +211,12 @@ kbd {
     }
 
     #canv {
-        /* Fill the available square, never overflow */
-        width: min(100%, calc(100dvh - 180px));
-        height: auto;
+        /* Each touch zone is ~80px (60px button + 20px padding), two zones = 160px.
+           Container padding adds 16px. Total overhead: 176px.
+           Canvas is square, so take the smaller of width and available height. */
+        --canvas-size: min(calc(100vw - 16px), calc(100dvh - 176px));
+        width: var(--canvas-size);
+        height: var(--canvas-size);
         border-radius: 4px;
     }
 
