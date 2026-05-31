@@ -18,9 +18,9 @@ beforeEach(() => {
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function createPlayer(playerNumber, gameOverrides = {}) {
+function createPlayer(playerNumber, isAI = false, difficulty = 'medium', gameOverrides = {}) {
     const game = createMockGame(gameOverrides);
-    const player = new Player(game, playerNumber);
+    const player = new Player(game, playerNumber, isAI, difficulty);
     return { player, game };
 }
 
@@ -422,19 +422,14 @@ describe('Player', () => {
 
     describe('AI Logic', () => {
         it('applies difficulty settings correctly', () => {
-            const { player } = createPlayer(2);
-            player.isAI = true;
+            const { player } = createPlayer(2, true, 'easy');
 
-            player.difficulty = 'easy';
-            player.applyDifficulty();
             expect(player.maxVelocity).toBe(PLAYER_MAX_VELOCITY * 0.35);
 
-            player.difficulty = 'medium';
-            player.applyDifficulty();
+            player.setDifficulty('medium');
             expect(player.maxVelocity).toBe(PLAYER_MAX_VELOCITY * 0.8);
 
-            player.difficulty = 'hard';
-            player.applyDifficulty();
+            player.setDifficulty('hard');
             expect(player.maxVelocity).toBe(PLAYER_MAX_VELOCITY * 1.5);
             expect(player.r).toBe(230);
             expect(player.g).toBe(40);
@@ -442,9 +437,8 @@ describe('Player', () => {
         });
 
         it('AI tracks the ball and presses appropriate keys (Easy)', () => {
-            const { player, game } = createPlayer(2);
-            player.isAI = true;
-            player.difficulty = 'easy';
+            const { player, game } = createPlayer(2, true, 'easy');
+            
             
             game.ball = {
                 angle: player.angle + 0.5, // ball is counter-clockwise
@@ -463,9 +457,8 @@ describe('Player', () => {
         });
 
         it('returns to Math.PI (opponent territory) when ball is falling into own territory', () => {
-            const { player, game } = createPlayer(2);
-            player.isAI = true;
-            player.difficulty = 'medium';
+            const { player, game } = createPlayer(2, true, 'medium');
+            
             
             // Place player away from Math.PI
             player.angle = Math.PI + Math.PI / 4; 
@@ -483,9 +476,7 @@ describe('Player', () => {
         });
 
         it('AI jumps when ball is approaching and close', () => {
-            const { player, game } = createPlayer(2);
-            player.isAI = true;
-            player.difficulty = 'medium';
+            const { player, game } = createPlayer(2, true, 'medium');
             player.grounded = true;
 
             const jumpDist = PLAYER_RADIUS * 4.0;
@@ -507,6 +498,37 @@ describe('Player', () => {
             player.updateAI();
             expect(jumpSpy).toHaveBeenCalled();
             randomSpy.mockRestore();
+        });
+
+        it('predicts landing angle accurately (Hard AI)', () => {
+            const { player, game } = createPlayer(2, true, 'hard');
+            
+            // Set up a mock ball moving purely along the x-axis
+            const ball = {
+                radius: 12,
+                x: 0,
+                y: 0,
+                xVelocity: 10,
+                yVelocity: 0,
+            };
+            
+            // Distance to travel = r_eff = CYLINDER_RADIUS - ball.radius
+            // t = r_eff / 10
+            const expectedT = (CYLINDER_RADIUS - ball.radius) / 10;
+            
+            // It travels along positive X, so inertial angle is 0.
+            // Cylinder angle after t frames = cylinderAngle + t * angVelocity
+            game.cylinderAngle = 0;
+            game.angVelocity = 0.01;
+            
+            const expectedFutureCylAngle = expectedT * 0.01;
+            const expectedPredictedAngle = ((0 - expectedFutureCylAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+            
+            const prediction = player.getPredictedLandingAngle(ball);
+            
+            expect(prediction).not.toBeNull();
+            expect(prediction.t).toBeCloseTo(expectedT);
+            expect(prediction.angle).toBeCloseTo(expectedPredictedAngle);
         });
     });
 

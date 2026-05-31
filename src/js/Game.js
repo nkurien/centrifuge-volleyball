@@ -188,20 +188,18 @@ export class Game {
         }
 
         if (this.isSinglePlayer) {
-            if (code === 'Digit1') {
-                this.player2.difficulty = 'easy';
-                this.player2.applyDifficulty();
-                this.updateDifficultyUI();
-            }
-            if (code === 'Digit2') {
-                this.player2.difficulty = 'medium';
-                this.player2.applyDifficulty();
-                this.updateDifficultyUI();
-            }
-            if (code === 'Digit3') {
-                this.player2.difficulty = 'hard';
-                this.player2.applyDifficulty();
-                this.updateDifficultyUI();
+            if (e.key === '1') {
+                this.player2.setDifficulty('easy');
+                document.getElementById('ai-difficulty').textContent = 'EASY';
+                document.getElementById('ai-difficulty').style.color = '#2979ff';
+            } else if (e.key === '2') {
+                this.player2.setDifficulty('medium');
+                document.getElementById('ai-difficulty').textContent = 'MEDIUM';
+                document.getElementById('ai-difficulty').style.color = '#ffb300';
+            } else if (e.key === '3') {
+                this.player2.setDifficulty('hard');
+                document.getElementById('ai-difficulty').textContent = 'HARD';
+                document.getElementById('ai-difficulty').style.color = '#e6283c';
             }
         }
 
@@ -514,6 +512,10 @@ export class Game {
 
     // ── Restart ──────────────────────────────────────────────
 
+    /**
+     * Resets the game state and optionally starts the game loop.
+     * @param {boolean} startGame - If true, transitions to 'playing' state immediately. If false, transitions to 'waiting' state.
+     */
     restart(startGame = true) {
         // Reset transform to identity, then re-center
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);

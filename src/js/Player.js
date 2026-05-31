@@ -14,6 +14,40 @@ import {
     PALETTE,
 } from './config.js';
 
+const DIFFICULTY_PROFILES = {
+    easy: {
+        maxVelocityMulti: 0.35,
+        jumpDistanceMulti: 3.0,
+        color: { r: 41, g: 121, b: 255 }, // Blue
+        glow: 'rgba(41,121,255,0.55)',
+        deadzone: 0.15,
+        jumpHesitation: 0.8
+    },
+    medium: {
+        maxVelocityMulti: 0.8,
+        jumpDistanceMulti: 4.0,
+        color: { r: 41, g: 121, b: 255 }, // Blue
+        glow: 'rgba(41,121,255,0.55)',
+        deadzone: 0.05, // Uses default if not specified, but good to be explicit
+        jumpHesitation: 0.6
+    },
+    hard: {
+        maxVelocityMulti: 1.5, // Hilariously fast
+        jumpDistanceMulti: 4.5,
+        color: { r: 230, g: 40, b: 60 }, // Red
+        glow: 'rgba(230,40,60,0.55)',
+        deadzone: 0.01,
+        jumpHesitation: 1.0 // Hard AI never jumps
+    }
+};
+
+function getAngleDiff(angle1, angle2) {
+    let diff = angle1 - angle2;
+    if (diff > Math.PI) diff -= 2 * Math.PI;
+    if (diff < -Math.PI) diff += 2 * Math.PI;
+    return diff;
+}
+
 export class Player {
     constructor(game, playerNumber, isAI = false, difficulty = 'medium') {
         this.game = game;
@@ -69,6 +103,15 @@ export class Player {
         this.winning = false;
 
         this.type = 1; // CentrifugeObject_PLAYER
+        
+        if (this.isAI) {
+            this.applyDifficulty();
+        }
+    }
+
+    setDifficulty(difficulty) {
+        this.difficulty = difficulty;
+        this.applyDifficulty();
     }
 
     jump() {
@@ -181,29 +224,51 @@ export class Player {
     }
 
     applyDifficulty() {
-        if (this.difficulty === 'easy') {
-            this.maxVelocity = PLAYER_MAX_VELOCITY * 0.35;
-            this.jumpDistance = this.radius * 3.0;
-            this.r = 41; this.g = 121; this.b = 255; // Blue
-            this.color = `rgb(${this.r},${this.g},${this.b})`;
-            this.glow = 'rgba(41,121,255,0.55)';
-        } else if (this.difficulty === 'medium') {
-            this.maxVelocity = PLAYER_MAX_VELOCITY * 0.8;
-            this.jumpDistance = this.radius * 4.0;
-            this.r = 41; this.g = 121; this.b = 255; // Blue
-            this.color = `rgb(${this.r},${this.g},${this.b})`;
-            this.glow = 'rgba(41,121,255,0.55)';
-        } else {
-            this.maxVelocity = PLAYER_MAX_VELOCITY * 1.5; // Hilariously fast
-            this.jumpDistance = this.radius * 4.5;
-            this.r = 230; this.g = 40; this.b = 60; // Red
-            this.color = `rgb(${this.r},${this.g},${this.b})`;
-            this.glow = 'rgba(230,40,60,0.55)';
+        const profile = DIFFICULTY_PROFILES[this.difficulty] || DIFFICULTY_PROFILES['medium'];
+        this.maxVelocity = PLAYER_MAX_VELOCITY * profile.maxVelocityMulti;
+        this.jumpDistance = this.radius * profile.jumpDistanceMulti;
+        this.r = profile.color.r;
+        this.g = profile.color.g;
+        this.b = profile.color.b;
+        this.color = `rgb(${this.r},${this.g},${this.b})`;
+        this.glow = profile.glow;
+    }
+
+    getPredictedLandingAngle(ball) {
+        const r_eff = CYLINDER_RADIUS - ball.radius;
+        const A = ball.xVelocity * ball.xVelocity + ball.yVelocity * ball.yVelocity;
+        const B = 2 * (ball.x * ball.xVelocity + ball.y * ball.yVelocity);
+        const C = ball.x * ball.x + ball.y * ball.y - r_eff * r_eff;
+        
+        let t = -1;
+        if (A > 0.0001) {
+            const discriminant = B * B - 4 * A * C;
+            if (discriminant >= 0) {
+                const t1 = (-B + Math.sqrt(discriminant)) / (2 * A);
+                const t2 = (-B - Math.sqrt(discriminant)) / (2 * A);
+                if (t1 > 0 && t2 > 0) t = Math.min(t1, t2);
+                else if (t1 > 0) t = t1;
+                else if (t2 > 0) t = t2;
+            }
         }
+        
+        if (t > 0) {
+            // Predict ball path using linear velocity approximation.
+            // Note: This ignores the quadratic curvature introduced by CYLINDER_GRAVITY.
+            // Since time-to-impact (t) is usually small, the linear approximation works 
+            // well enough to position the AI effectively without needing a numeric solver.
+            const landX = ball.x + t * ball.xVelocity;
+            const landY = ball.y + t * ball.yVelocity;
+            const landInertialAngle = Math.atan2(landY, landX);
+            const futureCylinderAngle = this.game.cylinderAngle + t * this.game.angVelocity;
+            const predictedLandAngle = ((landInertialAngle - futureCylinderAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+            
+            return { angle: predictedLandAngle, t: t };
+        }
+        return null;
     }
 
     updateAI() {
-        this.applyDifficulty();
         const ball = this.game.ball;
         if (ball.pauseNum !== -1) {
             this.keyLeftPressed = false;
@@ -217,15 +282,10 @@ export class Player {
         let targetAngle = ballAngle; // Default: Golden Retriever (Easy)
 
         if (this.difficulty === 'medium') {
-            let diffHome = ballAngle - Math.PI; // Home is now Player 1's territory (Math.PI)
-            if (diffHome > Math.PI) diffHome -= 2 * Math.PI;
-            if (diffHome < -Math.PI) diffHome += 2 * Math.PI;
+            const diffHome = getAngleDiff(ballAngle, Math.PI); // Home is now Player 1's territory (Math.PI)
             
             // Check if ball is in Player 2's territory (around 0)
-            let diffP2 = ballAngle;
-            if (diffP2 > Math.PI) diffP2 -= 2 * Math.PI;
-            if (diffP2 < -Math.PI) diffP2 += 2 * Math.PI;
-            
+            const diffP2 = getAngleDiff(ballAngle, 0);
             const inP2Territory = Math.abs(diffP2) <= this.fraction * Math.PI;
             
             if (inP2Territory) {
@@ -240,35 +300,14 @@ export class Player {
             if (ball.grounded) {
                 targetAngle = ballAngle;
             } else {
-                const r_eff = CYLINDER_RADIUS - ball.radius;
-                const A = ball.xVelocity * ball.xVelocity + ball.yVelocity * ball.yVelocity;
-                const B = 2 * (ball.x * ball.xVelocity + ball.y * ball.yVelocity);
-                const C = ball.x * ball.x + ball.y * ball.y - r_eff * r_eff;
+                const prediction = this.getPredictedLandingAngle(ball);
                 
-                let t = -1;
-                if (A > 0.0001) {
-                    const discriminant = B * B - 4 * A * C;
-                    if (discriminant >= 0) {
-                        const t1 = (-B + Math.sqrt(discriminant)) / (2 * A);
-                        const t2 = (-B - Math.sqrt(discriminant)) / (2 * A);
-                        if (t1 > 0 && t2 > 0) t = Math.min(t1, t2);
-                        else if (t1 > 0) t = t1;
-                        else if (t2 > 0) t = t2;
-                    }
-                }
-                
-                if (t > 0) {
-                    const landX = ball.x + t * ball.xVelocity;
-                    const landY = ball.y + t * ball.yVelocity;
-                    const landInertialAngle = Math.atan2(landY, landX);
-                    const futureCylinderAngle = this.game.cylinderAngle + t * this.game.angVelocity;
-                    const predictedLandAngle = ((landInertialAngle - futureCylinderAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+                if (prediction) {
+                    const predictedLandAngle = prediction.angle;
+                    const t = prediction.t;
                     
                     // Check if predicted landing is in P2's territory (around 0)
-                    let diffP2 = predictedLandAngle;
-                    if (diffP2 > Math.PI) diffP2 -= 2 * Math.PI;
-                    if (diffP2 < -Math.PI) diffP2 += 2 * Math.PI;
-                    
+                    const diffP2 = getAngleDiff(predictedLandAngle, 0);
                     const landsInP2 = Math.abs(diffP2) <= this.fraction * Math.PI;
                     
                     if (landsInP2) {
@@ -278,9 +317,7 @@ export class Player {
                         // Intercept it with a "caress" offset.
                         // We want to bounce it towards P2's territory (angle 0).
                         // So we stand slightly on the opposite side of the ball.
-                        let diffToZero = predictedLandAngle;
-                        if (diffToZero > Math.PI) diffToZero -= 2 * Math.PI;
-                        if (diffToZero < -Math.PI) diffToZero += 2 * Math.PI;
+                        const diffToZero = getAngleDiff(predictedLandAngle, 0);
                         
                         // PLAYER_RADIUS = 14, CYLINDER_RADIUS = 320. 
                         // Base offset for an angled bounce towards 0.
@@ -317,14 +354,11 @@ export class Player {
         }
         
         targetAngle = ((targetAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-        let diff = targetAngle - myAngle;
-        if (diff > Math.PI) diff -= 2 * Math.PI;
-        if (diff < -Math.PI) diff += 2 * Math.PI;
+        const diff = getAngleDiff(targetAngle, myAngle);
 
         // Deadzone to prevent jittering
-        let deadzone = 0.05;
-        if (this.difficulty === 'easy') deadzone = 0.15;
-        if (this.difficulty === 'hard') deadzone = 0.01;
+        const profile = DIFFICULTY_PROFILES[this.difficulty] || DIFFICULTY_PROFILES['medium'];
+        let deadzone = profile.deadzone || 0.05;
 
         this.keyLeftPressed = diff > deadzone;
         this.keyRightPressed = diff < -deadzone;
@@ -343,9 +377,7 @@ export class Player {
             // If it's falling in Player 1's territory (around Math.PI), we want to hit it back to Player 2's territory.
             // If it's falling in Player 2's territory, we already moved away, but if we are here, we definitely shouldn't jump.
             
-            let diffP2 = ballAngle;
-            if (diffP2 > Math.PI) diffP2 -= 2 * Math.PI;
-            if (diffP2 < -Math.PI) diffP2 += 2 * Math.PI;
+            const diffP2 = getAngleDiff(ballAngle, 0);
             const inP2Territory = Math.abs(diffP2) <= this.fraction * Math.PI;
 
             if (inP2Territory) {
@@ -353,14 +385,9 @@ export class Player {
                 shouldJump = false;
             } else {
                 // It's in P1's territory. Jumping helps us spike it into P2's territory.
-                if (this.difficulty === 'hard') {
-                    // Hard AI is perfectly strategic, and since jumping is risky, it simply never jumps.
-                    // It relies purely on its perfect positioning to bounce the ball.
+                const profile = DIFFICULTY_PROFILES[this.difficulty] || DIFFICULTY_PROFILES['medium'];
+                if (Math.random() < profile.jumpHesitation) {
                     shouldJump = false; 
-                } else if (this.difficulty === 'medium') {
-                    if (Math.random() < 0.6) shouldJump = false; // 60% hesitation to avoid jumping too much
-                } else {
-                    if (Math.random() < 0.8) shouldJump = false; // 80% hesitation
                 }
             }
 
