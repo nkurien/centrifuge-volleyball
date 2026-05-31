@@ -77,9 +77,14 @@ export class Game {
     setupInput() {
         this._onKeyDown = this.onKeyDown.bind(this);
         this._onKeyUp = this.onKeyUp.bind(this);
+        this.mobileMenu = document.getElementById('mobile-menu');
+        this.mobileDifficultyMenu = document.getElementById('mobile-difficulty-menu');
+
         document.addEventListener('keydown', this._onKeyDown);
         document.addEventListener('keyup', this._onKeyUp);
         this.canvas.addEventListener('click', () => {
+            if (this.isTouchDevice) return; // Handled by mobile HTML menus
+
             if (!this.gameStarted) {
                 this.isSinglePlayer = false;
                 this.waitingForDifficulty = false;
@@ -97,6 +102,8 @@ export class Game {
 
         if (window.matchMedia('(pointer: coarse)').matches) {
             this.setupTouchControls();
+            this.setupMobileMenus();
+            this.showMobileMenu();
         }
     }
 
@@ -109,18 +116,8 @@ export class Game {
                 'touchstart',
                 (e) => {
                     e.preventDefault();
-                    if (!this.gameStarted) {
-                        this.waitingForDifficulty = false;
-                        this.gameStarted = true;
-                        this.updateDifficultyUI();
-                        return;
-                    }
-                    if (this.gameEnded) {
-                        this.waitingForDifficulty = false;
-                        this.restart(true);
-                        this.updateDifficultyUI();
-                        return;
-                    }
+                    if (!this.gameStarted || this.gameEnded) return;
+
                     const player = playerNum === '1' ? this.player1 : this.player2;
                     if (action === 'jump') player.jump();
                     else if (action === 'left') player.keyLeftPressed = true;
@@ -139,6 +136,72 @@ export class Game {
             btn.addEventListener('touchend', release, { passive: false });
             btn.addEventListener('touchcancel', release, { passive: false });
         });
+    }
+
+    setupMobileMenus() {
+        const btn2p = document.getElementById('btn-2p');
+        const btn1p = document.getElementById('btn-1p');
+        const btnEasy = document.getElementById('btn-easy');
+        const btnMedium = document.getElementById('btn-medium');
+        const btnHard = document.getElementById('btn-hard');
+        const btnBack = document.getElementById('btn-back');
+        
+        const startGameFlow = () => {
+            this.waitingForDifficulty = false;
+            if (this.gameEnded) {
+                this.restart(true);
+            } else {
+                this.gameStarted = true;
+            }
+            this.updateDifficultyUI();
+        };
+
+        const handle2P = (e) => {
+            e.preventDefault();
+            this.mobileMenu.style.display = 'none';
+            this.isSinglePlayer = false;
+            startGameFlow();
+        };
+        
+        const handle1P = (e) => {
+            e.preventDefault();
+            this.mobileMenu.style.display = 'none';
+            this.mobileDifficultyMenu.style.display = 'flex';
+        };
+        
+        const handleBack = (e) => {
+            e.preventDefault();
+            this.mobileDifficultyMenu.style.display = 'none';
+            this.mobileMenu.style.display = 'flex';
+        };
+        
+        const handleDifficulty = (diff) => {
+            return (e) => {
+                e.preventDefault();
+                this.mobileDifficultyMenu.style.display = 'none';
+                this.isSinglePlayer = true;
+                this.player2 = new Player(this, 2, true, diff);
+                this.setFractions();
+                startGameFlow();
+            };
+        };
+        
+        // Use pointerdown to handle both mouse and touch, avoiding double-firing
+        // from binding both touchstart and click.
+        btn2p.addEventListener('pointerdown', handle2P);
+        btn1p.addEventListener('pointerdown', handle1P);
+        btnBack.addEventListener('pointerdown', handleBack);
+        
+        btnEasy.addEventListener('pointerdown', handleDifficulty('easy'));
+        btnMedium.addEventListener('pointerdown', handleDifficulty('medium'));
+        btnHard.addEventListener('pointerdown', handleDifficulty('hard'));
+    }
+
+    showMobileMenu() {
+        if (this.isTouchDevice) {
+            this.mobileMenu.style.display = 'flex';
+            this.mobileDifficultyMenu.style.display = 'none';
+        }
     }
 
     onKeyDown(e) {
@@ -227,18 +290,25 @@ export class Game {
     updateDifficultyUI() {
         const diffEls = document.querySelectorAll('.diff-ui');
         if (!this.isSinglePlayer) {
-            diffEls.forEach(el => el.style.display = 'none');
+            diffEls.forEach((el) => (el.style.display = 'none'));
+            if (this.isTouchDevice) {
+                document.getElementById('touch-p2').style.display = 'flex';
+            }
             return;
         }
-        
-        diffEls.forEach(el => {
+
+        diffEls.forEach((el) => {
             if (el.classList.contains('controls-divider')) {
                 el.style.display = 'block';
             } else {
                 el.style.display = 'flex';
             }
         });
-        
+
+        if (this.isTouchDevice) {
+            document.getElementById('touch-p2').style.display = 'none';
+        }
+
         const diffText = document.getElementById('ai-difficulty');
         if (diffText && this.player2) {
             const diff = this.player2.difficulty;
@@ -449,10 +519,12 @@ export class Game {
         ctx.shadowBlur = 0;
 
         // Subtitle
-        ctx.font = '13px system-ui, sans-serif';
-        ctx.fillStyle = PALETTE.TEXT_MUTED;
-        const prompt = this.isTouchDevice ? 'tap to restart' : "press 's' for 1P, any other key for 2P";
-        ctx.fillText(prompt, 0, 28);
+        if (!this.isTouchDevice) {
+            ctx.font = '13px system-ui, sans-serif';
+            ctx.fillStyle = PALETTE.TEXT_MUTED;
+            const prompt = "press 's' for 1P, any other key for 2P";
+            ctx.fillText(prompt, 0, 28);
+        }
 
         ctx.restore();
     }
