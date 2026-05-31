@@ -27,6 +27,10 @@ export class Game {
         this.ctx = this.canvas.getContext('2d');
         this.isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
         this.initState();
+        this.menuButtons = [];
+        if (this.isTouchDevice) {
+            this.menuState = 'mode-select';
+        }
         this.createObjects();
         this.setupInput();
 
@@ -50,15 +54,18 @@ export class Game {
         this.num = 1150; // Frame counter — starts here to sync camera behaviour
         this.startTime = null;
         this.highPerformance = true;
-        this.waitingForDifficulty = false;
+        this.menuState = null;
         if (this.isSinglePlayer === undefined) {
             this.isSinglePlayer = false;
+        }
+        if (this.aiDifficulty === undefined) {
+            this.aiDifficulty = 'medium';
         }
     }
 
     createObjects() {
         this.player1 = new Player(this, 1);
-        this.player2 = new Player(this, 2, this.isSinglePlayer, 'medium');
+        this.player2 = new Player(this, 2, this.isSinglePlayer, this.aiDifficulty);
         this.ball = new Ball(this);
         this.setFractions();
 
@@ -76,24 +83,23 @@ export class Game {
     setupInput() {
         this._onKeyDown = this.onKeyDown.bind(this);
         this._onKeyUp = this.onKeyUp.bind(this);
-        this.mobileMenu = document.getElementById('mobile-menu');
-        this.mobileDifficultyMenu = document.getElementById('mobile-difficulty-menu');
 
         document.addEventListener('keydown', this._onKeyDown);
         document.addEventListener('keyup', this._onKeyUp);
-        this.canvas.addEventListener('click', () => {
-            if (this.isTouchDevice) return; // Handled by mobile HTML menus
-
-            if (!this.gameStarted) {
+        this.canvas.addEventListener('click', (e) => {
+            if (this.isTouchDevice) {
+                this.handleCanvasClick(e);
+                return;
+            }
+            // Desktop: click starts/restarts as 2P
+            if (!this.gameStarted && !this.menuState) {
                 this.isSinglePlayer = false;
-                this.waitingForDifficulty = false;
                 this.gameStarted = true;
                 this.updateDifficultyUI();
                 return;
             }
             if (this.gameEnded) {
                 this.isSinglePlayer = false;
-                this.waitingForDifficulty = false;
                 this.restart(true);
                 this.updateDifficultyUI();
             }
@@ -101,8 +107,6 @@ export class Game {
 
         if (window.matchMedia('(pointer: coarse)').matches) {
             this.setupTouchControls();
-            this.setupMobileMenus();
-            this.showMobileMenu();
         }
     }
 
@@ -137,98 +141,33 @@ export class Game {
         });
     }
 
-    setupMobileMenus() {
-        const btn2p = document.getElementById('btn-2p');
-        const btn1p = document.getElementById('btn-1p');
-        const btnEasy = document.getElementById('btn-easy');
-        const btnMedium = document.getElementById('btn-medium');
-        const btnHard = document.getElementById('btn-hard');
-        const btnBack = document.getElementById('btn-back');
-        
-        const startGameFlow = () => {
-            this.waitingForDifficulty = false;
-            if (this.gameEnded) {
-                this.restart(true);
-            } else {
-                this.gameStarted = true;
-            }
-            this.updateDifficultyUI();
-        };
-
-        const handle2P = (e) => {
-            e.preventDefault();
-            this.mobileMenu.style.display = 'none';
-            this.isSinglePlayer = false;
-            startGameFlow();
-        };
-        
-        const handle1P = (e) => {
-            e.preventDefault();
-            this.mobileMenu.style.display = 'none';
-            this.mobileDifficultyMenu.style.display = 'flex';
-        };
-        
-        const handleBack = (e) => {
-            e.preventDefault();
-            this.mobileDifficultyMenu.style.display = 'none';
-            this.mobileMenu.style.display = 'flex';
-        };
-        
-        const handleDifficulty = (diff) => {
-            return (e) => {
-                e.preventDefault();
-                this.mobileDifficultyMenu.style.display = 'none';
-                this.isSinglePlayer = true;
-                this.player2 = new Player(this, 2, true, diff);
-                this.setFractions();
-                startGameFlow();
-            };
-        };
-        
-        // Use pointerdown to handle both mouse and touch, avoiding double-firing
-        // from binding both touchstart and click.
-        btn2p.addEventListener('pointerdown', handle2P);
-        btn1p.addEventListener('pointerdown', handle1P);
-        btnBack.addEventListener('pointerdown', handleBack);
-        
-        btnEasy.addEventListener('pointerdown', handleDifficulty('easy'));
-        btnMedium.addEventListener('pointerdown', handleDifficulty('medium'));
-        btnHard.addEventListener('pointerdown', handleDifficulty('hard'));
-    }
-
-    showMobileMenu() {
-        if (this.isTouchDevice) {
-            this.mobileMenu.style.display = 'flex';
-            this.mobileDifficultyMenu.style.display = 'none';
-        }
-    }
-
     onKeyDown(e) {
         const code = e.code;
         const key = e.key;
 
-        if (this.waitingForDifficulty) {
+        if (this.menuState === 'difficulty-select') {
             let selectedDiff = null;
             if (code === 'Digit1') selectedDiff = 'easy';
             if (code === 'Digit2') selectedDiff = 'medium';
             if (code === 'Digit3') selectedDiff = 'hard';
 
             if (selectedDiff) {
+                this.aiDifficulty = selectedDiff;
                 this.isSinglePlayer = true;
                 this.player2 = new Player(this, 2, true, selectedDiff);
                 this.setFractions();
-                this.waitingForDifficulty = false;
+                this.menuState = null;
                 this.gameStarted = true;
                 this.updateDifficultyUI();
             } else if (key === 'Escape' || key === 'escape') {
-                this.waitingForDifficulty = false;
+                this.menuState = null;
             }
             return;
         }
 
         if (!this.gameStarted) {
             if (key === 's' || key === 'S') {
-                this.waitingForDifficulty = true;
+                this.menuState = 'difficulty-select';
             } else {
                 this.isSinglePlayer = false;
                 this.gameStarted = true;
@@ -240,7 +179,7 @@ export class Game {
             if (key === 's' || key === 'S') {
                 this.isSinglePlayer = true;
                 this.restart(false);
-                this.waitingForDifficulty = true;
+                this.menuState = 'difficulty-select';
             } else {
                 this.isSinglePlayer = false;
                 this.restart(true);
@@ -251,14 +190,17 @@ export class Game {
 
         if (this.isSinglePlayer) {
             if (e.key === '1') {
+                this.aiDifficulty = 'easy';
                 this.player2.setDifficulty('easy');
                 document.getElementById('ai-difficulty').textContent = 'EASY';
                 document.getElementById('ai-difficulty').style.color = '#2979ff';
             } else if (e.key === '2') {
+                this.aiDifficulty = 'medium';
                 this.player2.setDifficulty('medium');
                 document.getElementById('ai-difficulty').textContent = 'MEDIUM';
                 document.getElementById('ai-difficulty').style.color = '#ffb300';
             } else if (e.key === '3') {
+                this.aiDifficulty = 'hard';
                 this.player2.setDifficulty('hard');
                 document.getElementById('ai-difficulty').textContent = 'HARD';
                 document.getElementById('ai-difficulty').style.color = '#e6283c';
@@ -352,6 +294,8 @@ export class Game {
         // At 120fps (~8.3ms) this fires every 4th frame = ~33ms.
         if (timestamp - this.lastFrameTime < 28) return;
         this.lastFrameTime = timestamp;
+
+        this.menuButtons = [];
 
         if (!this.gameStarted) {
             this.renderStartScreen();
@@ -492,10 +436,10 @@ export class Game {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, this.canvas.width / 2, this.canvas.height / 2);
 
-        const w = 300,
-            h = 96;
-        const x = -w / 2,
-            y = -h / 2;
+        const w = 300;
+        const h = this.isTouchDevice ? 140 : 96;
+        const x = -w / 2;
+        const y = -h / 2;
 
         // Card
         ctx.fillStyle = PALETTE.SURFACE;
@@ -510,19 +454,28 @@ export class Game {
         // Winner text with player-color glow
         const winnerGlow = this.winner === 1 ? 'rgba(255,107,43,0.55)' : 'rgba(41,121,255,0.55)';
         ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
         ctx.font = 'bold 26px system-ui, sans-serif';
         ctx.fillStyle = PALETTE.TEXT;
         ctx.shadowBlur = 18;
         ctx.shadowColor = winnerGlow;
-        ctx.fillText(`Player ${this.winner} wins`, 0, -8);
+        const titleY = this.isTouchDevice ? -24 : -8;
+        ctx.fillText(`Player ${this.winner} wins`, 0, titleY);
         ctx.shadowBlur = 0;
 
-        // Subtitle
-        if (!this.isTouchDevice) {
+        if (this.isTouchDevice) {
+            // Touch: "Play Again" and "Menu" buttons
+            const btnW = 120;
+            const btnH = 38;
+            const btnY = 10;
+            const gap = 12;
+            this.drawMenuButton(ctx, -btnW - gap / 2, btnY, btnW, btnH, 'Play Again', 'play-again');
+            this.drawMenuButton(ctx, gap / 2, btnY, btnW, btnH, 'Menu', 'go-menu');
+        } else {
+            // Desktop: keyboard prompt
             ctx.font = '13px system-ui, sans-serif';
             ctx.fillStyle = PALETTE.TEXT_MUTED;
-            const prompt = "press 's' for 1P, any other key for 2P";
-            ctx.fillText(prompt, 0, 28);
+            ctx.fillText("press 's' for 1P, any other key for 2P", 0, 28);
         }
 
         ctx.restore();
@@ -549,7 +502,13 @@ export class Game {
         }
         ctx.stroke();
 
-        this.drawStartCard(ctx);
+        if (this.isTouchDevice && this.menuState === 'mode-select') {
+            this.drawModeSelectCard(ctx);
+        } else if (this.isTouchDevice && this.menuState === 'difficulty-select') {
+            this.drawDifficultySelectCard(ctx);
+        } else {
+            this.drawStartCard(ctx);
+        }
     }
 
     drawStartCard(ctx) {
@@ -569,16 +528,188 @@ export class Game {
         ctx.stroke();
 
         ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
         ctx.font = '13px system-ui, sans-serif';
         ctx.fillStyle = PALETTE.TEXT_MUTED;
         let prompt = this.isTouchDevice ? 'tap to start' : "press 's' for 1P, any other key for 2P";
-        if (this.waitingForDifficulty) {
+        if (this.menuState === 'difficulty-select') {
             prompt = "Select AI: 1 (Easy), 2 (Med), 3 (Hard)";
             ctx.fillStyle = '#dadadb'; // Make it pop more when waiting
         }
         ctx.fillText(prompt, 0, 6);
 
         ctx.restore();
+    }
+
+    // ── Canvas Menu Rendering ────────────────────────────────
+
+    drawMenuButton(ctx, x, y, w, h, label, action, options = {}) {
+        ctx.fillStyle = options.bgColor || '#3a3a42';
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, 6);
+        ctx.fill();
+
+        ctx.strokeStyle = options.borderColor || '#4a4a52';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = options.textColor || PALETTE.TEXT;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = options.font || 'bold 14px system-ui, sans-serif';
+        ctx.fillText(label, x + w / 2, y + h / 2);
+
+        this.menuButtons.push({ x, y, w, h, action });
+    }
+
+    drawModeSelectCard(ctx) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, this.canvas.width / 2, this.canvas.height / 2);
+
+        const w = 250, h = 170;
+        const x = -w / 2, y = -h / 2;
+
+        // Card
+        ctx.fillStyle = PALETTE.SURFACE;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, 8);
+        ctx.fill();
+        ctx.strokeStyle = PALETTE.BORDER;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Title
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.font = 'bold 17px system-ui, sans-serif';
+        ctx.fillStyle = PALETTE.TEXT;
+        ctx.fillText('Centrifuge Volleyball', 0, y + 36);
+
+        // Subtitle
+        ctx.font = '12px system-ui, sans-serif';
+        ctx.fillStyle = PALETTE.TEXT_MUTED;
+        ctx.fillText('First to 25, win by 2', 0, y + 54);
+
+        // Buttons
+        const btnW = 210, btnH = 38;
+        const btnX = -btnW / 2;
+        this.drawMenuButton(ctx, btnX, y + 70, btnW, btnH, '1 Player', 'select-1p');
+        this.drawMenuButton(ctx, btnX, y + 70 + btnH + 10, btnW, btnH, '2 Player', 'select-2p');
+
+        ctx.restore();
+    }
+
+    drawDifficultySelectCard(ctx) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, this.canvas.width / 2, this.canvas.height / 2);
+
+        const w = 250, h = 240;
+        const x = -w / 2, y = -h / 2;
+
+        // Card
+        ctx.fillStyle = PALETTE.SURFACE;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, 8);
+        ctx.fill();
+        ctx.strokeStyle = PALETTE.BORDER;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Title
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.font = 'bold 17px system-ui, sans-serif';
+        ctx.fillStyle = PALETTE.TEXT;
+        ctx.fillText('Select Difficulty', 0, y + 36);
+
+        // Difficulty buttons
+        const btnW = 210, btnH = 38;
+        const btnX = -btnW / 2;
+        const startY = y + 54;
+        const gap = 8;
+
+        this.drawMenuButton(ctx, btnX, startY, btnW, btnH, 'Easy', 'select-easy', {
+            textColor: '#2979ff',
+            borderColor: 'rgba(41,121,255,0.3)',
+        });
+        this.drawMenuButton(ctx, btnX, startY + btnH + gap, btnW, btnH, 'Medium', 'select-medium', {
+            textColor: '#ffb300',
+            borderColor: 'rgba(255,179,0,0.3)',
+        });
+        this.drawMenuButton(ctx, btnX, startY + 2 * (btnH + gap), btnW, btnH, 'Hard', 'select-hard', {
+            textColor: '#e6283c',
+            borderColor: 'rgba(230,40,60,0.3)',
+        });
+
+        // Back link
+        ctx.fillStyle = PALETTE.TEXT_MUTED;
+        ctx.font = '13px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const backY = startY + 3 * (btnH + gap) + 12;
+        ctx.fillText('\u2190 Back', 0, backY);
+        this.menuButtons.push({ x: -40, y: backY - 10, w: 80, h: 20, action: 'back' });
+
+        ctx.restore();
+    }
+
+    // ── Canvas Menu Input ────────────────────────────────────
+
+    handleCanvasClick(e) {
+        if (this.menuButtons.length === 0) return;
+
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const cx = (e.clientX - rect.left) * scaleX - this.canvas.width / 2;
+        const cy = (e.clientY - rect.top) * scaleY - this.canvas.height / 2;
+
+        for (const btn of this.menuButtons) {
+            if (cx >= btn.x && cx <= btn.x + btn.w && cy >= btn.y && cy <= btn.y + btn.h) {
+                this.onMenuAction(btn.action);
+                return;
+            }
+        }
+    }
+
+    onMenuAction(action) {
+        switch (action) {
+            case 'select-2p':
+                this.isSinglePlayer = false;
+                this.menuState = null;
+                this.gameStarted = true;
+                this.updateDifficultyUI();
+                break;
+            case 'select-1p':
+                this.menuState = 'difficulty-select';
+                break;
+            case 'select-easy':
+            case 'select-medium':
+            case 'select-hard': {
+                const diff = action.replace('select-', '');
+                this.aiDifficulty = diff;
+                this.isSinglePlayer = true;
+                this.player2 = new Player(this, 2, true, diff);
+                this.setFractions();
+                this.menuState = null;
+                this.gameStarted = true;
+                this.updateDifficultyUI();
+                break;
+            }
+            case 'back':
+                this.menuState = 'mode-select';
+                break;
+            case 'play-again':
+                this.restart(true);
+                this.updateDifficultyUI();
+                break;
+            case 'go-menu':
+                this.isSinglePlayer = false;
+                this.aiDifficulty = 'medium';
+                this.restart(false);
+                this.menuState = 'mode-select';
+                break;
+        }
     }
 
     // ── Restart ──────────────────────────────────────────────

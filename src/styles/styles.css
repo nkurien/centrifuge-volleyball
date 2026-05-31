@@ -131,16 +131,6 @@ kbd {
     display: none;
 }
 
-.btn-easy { border-color: #2979ff; color: #2979ff; }
-.btn-medium { border-color: #ffb300; color: #ffb300; }
-.btn-hard { border-color: #e6283c; color: #e6283c; }
-.btn-back { 
-    border-color: #888; 
-    color: #888; 
-    font-size: 1rem; 
-    padding: 10px 20px; 
-    margin-top: 10px; 
-}
 
 .touch-btn {
     background: #1d1e20;
