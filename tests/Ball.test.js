@@ -3,14 +3,13 @@ import { Ball, mod } from '../src/js/Ball.js';
 import { Player } from '../src/js/Player.js';
 import { createMockGame, installDomMocks } from './mocks.js';
 import {
+    CANVAS_SIZE,
     CYLINDER_RADIUS,
+    PLAYER_RADIUS,
     BALL_RADIUS,
     BALL_INITIAL_SPEED,
     BALL_FRICTION,
-    WIN_SCORE,
-    MIN_SCORE_DIFFERENCE,
     PALETTE,
-    PLAYER_COLORS,
 } from '../src/js/config.js';
 
 beforeEach(() => {

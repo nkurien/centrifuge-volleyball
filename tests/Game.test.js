@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { installDomMocks } from './mocks.js';
 import { CYLINDER_ANG_VELOCITY, CYLINDER_CAM_ANG_VELOCITY, WIN_SCORE } from '../src/js/config.js';
 

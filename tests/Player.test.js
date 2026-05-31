@@ -7,7 +7,6 @@ import {
     PLAYER_MAX_VELOCITY,
     PLAYER_ANG_ACCEL,
     PLAYER_JUMP_POWER,
-    PLAYER_FRICTION,
     CONTROLS,
     PLAYER_COLORS,
 } from '../src/js/config.js';

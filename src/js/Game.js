@@ -11,7 +11,6 @@ import {
     CANVAS_SIZE,
     HALF_CANVAS,
     STAR_COUNT,
-    CONTROLS,
     PALETTE,
 } from './config.js';
 import { Player } from './Player.js';

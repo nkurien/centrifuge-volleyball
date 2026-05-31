@@ -282,8 +282,6 @@ export class Player {
         let targetAngle = ballAngle; // Default: Golden Retriever (Easy)
 
         if (this.difficulty === 'medium') {
-            const diffHome = getAngleDiff(ballAngle, Math.PI); // Home is now Player 1's territory (Math.PI)
-            
             // Check if ball is in Player 2's territory (around 0)
             const diffP2 = getAngleDiff(ballAngle, 0);
             const inP2Territory = Math.abs(diffP2) <= this.fraction * Math.PI;

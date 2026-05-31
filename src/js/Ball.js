@@ -7,7 +7,6 @@ import {
     BALL_RADIUS,
     BALL_INITIAL_SPEED,
     BALL_FRICTION,
-    WIN_SCORE,
     MIN_SCORE_DIFFERENCE,
     PALETTE,
 } from './config.js';
