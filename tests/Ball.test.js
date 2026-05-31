@@ -575,8 +575,13 @@ describe('Ball', () => {
             const { ctx } = installDomMocks();
             player1.draw(ctx);
             player2.draw(ctx);
-            ball.x = player1.x;
+            player1.grounded = false;
+            player1.xVelocity = 0;
+            player1.yVelocity = 0;
+            ball.x = player1.x + 10;
             ball.y = player1.y;
+            ball.xVelocity = -10; // Moving towards player center
+            ball.yVelocity = 0;
             const xBefore = ball.x;
             const yBefore = ball.y;
 

@@ -192,6 +192,13 @@ export class Ball {
                         -ballSpeed * Math.sin(this.game.cylinderAngle + player.angle);
                 }
 
+                const relVx = this.xVelocity - player.xVelocity;
+                const relVy = this.yVelocity - player.yVelocity;
+                // If they are moving apart, ignore collision to prevent sticking
+                if (relVx * collisionVector.x + relVy * collisionVector.y > 0) {
+                    continue;
+                }
+
                 // Play hit sound
                 playSound('hitSound');
                 this.hit = true;
@@ -241,6 +248,15 @@ export class Ball {
                 const collisionAngle = Math.atan2(collisionVector.y, collisionVector.x);
                 this.x = centerX + (centerRadius + this.radius) * Math.cos(collisionAngle);
                 this.y = centerY + (centerRadius + this.radius) * Math.sin(collisionAngle);
+                
+                // Prevent wedging: if the player collision pushed the ball into the wall,
+                // pull it radially inward so it pops 'up' instead of getting trapped and rolling.
+                const distFromCenter = Math.sqrt(this.x * this.x + this.y * this.y);
+                const maxDist = CYLINDER_RADIUS - this.radius;
+                if (distFromCenter > maxDist) {
+                    this.x = (this.x / distFromCenter) * maxDist;
+                    this.y = (this.y / distFromCenter) * maxDist;
+                }
 
                 // Iterative separation for corner collisions
                 if (cornerCollision) {

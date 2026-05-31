@@ -15,9 +15,11 @@ import {
 } from './config.js';
 
 export class Player {
-    constructor(game, playerNumber) {
+    constructor(game, playerNumber, isAI = false, difficulty = 'medium') {
         this.game = game;
         this.playerNumber = playerNumber;
+        this.isAI = isAI;
+        this.difficulty = difficulty;
 
         // Initial position on the cylinder wall
         this.x = CYLINDER_RADIUS * Math.cos((2 * Math.PI * playerNumber) / 2 + Math.PI);
@@ -178,7 +180,204 @@ export class Player {
         this.fraction += (this.targetFraction - this.fraction) / 10;
     }
 
+    applyDifficulty() {
+        if (this.difficulty === 'easy') {
+            this.maxVelocity = PLAYER_MAX_VELOCITY * 0.35;
+            this.jumpDistance = this.radius * 3.0;
+            this.r = 41; this.g = 121; this.b = 255; // Blue
+            this.color = `rgb(${this.r},${this.g},${this.b})`;
+            this.glow = 'rgba(41,121,255,0.55)';
+        } else if (this.difficulty === 'medium') {
+            this.maxVelocity = PLAYER_MAX_VELOCITY * 0.8;
+            this.jumpDistance = this.radius * 4.0;
+            this.r = 41; this.g = 121; this.b = 255; // Blue
+            this.color = `rgb(${this.r},${this.g},${this.b})`;
+            this.glow = 'rgba(41,121,255,0.55)';
+        } else {
+            this.maxVelocity = PLAYER_MAX_VELOCITY * 1.5; // Hilariously fast
+            this.jumpDistance = this.radius * 4.5;
+            this.r = 230; this.g = 40; this.b = 60; // Red
+            this.color = `rgb(${this.r},${this.g},${this.b})`;
+            this.glow = 'rgba(230,40,60,0.55)';
+        }
+    }
+
+    updateAI() {
+        this.applyDifficulty();
+        const ball = this.game.ball;
+        if (ball.pauseNum !== -1) {
+            this.keyLeftPressed = false;
+            this.keyRightPressed = false;
+            return;
+        }
+
+        const ballAngle = ((ball.angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        const myAngle = ((this.angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        
+        let targetAngle = ballAngle; // Default: Golden Retriever (Easy)
+
+        if (this.difficulty === 'medium') {
+            let diffHome = ballAngle - Math.PI; // Home is now Player 1's territory (Math.PI)
+            if (diffHome > Math.PI) diffHome -= 2 * Math.PI;
+            if (diffHome < -Math.PI) diffHome += 2 * Math.PI;
+            
+            // Check if ball is in Player 2's territory (around 0)
+            let diffP2 = ballAngle;
+            if (diffP2 > Math.PI) diffP2 -= 2 * Math.PI;
+            if (diffP2 < -Math.PI) diffP2 += 2 * Math.PI;
+            
+            const inP2Territory = Math.abs(diffP2) <= this.fraction * Math.PI;
+            
+            if (inP2Territory) {
+                // If it's falling in our territory, get out of the way so we can score!
+                targetAngle = Math.PI; // Return to P1's territory
+            } else {
+                // It's in P1's territory, track it to prevent them from scoring
+                // Human error wobble
+                targetAngle = ballAngle + Math.sin(this.game.num / 20) * 0.15;
+            }
+        } else if (this.difficulty === 'hard') {
+            if (ball.grounded) {
+                targetAngle = ballAngle;
+            } else {
+                const r_eff = CYLINDER_RADIUS - ball.radius;
+                const A = ball.xVelocity * ball.xVelocity + ball.yVelocity * ball.yVelocity;
+                const B = 2 * (ball.x * ball.xVelocity + ball.y * ball.yVelocity);
+                const C = ball.x * ball.x + ball.y * ball.y - r_eff * r_eff;
+                
+                let t = -1;
+                if (A > 0.0001) {
+                    const discriminant = B * B - 4 * A * C;
+                    if (discriminant >= 0) {
+                        const t1 = (-B + Math.sqrt(discriminant)) / (2 * A);
+                        const t2 = (-B - Math.sqrt(discriminant)) / (2 * A);
+                        if (t1 > 0 && t2 > 0) t = Math.min(t1, t2);
+                        else if (t1 > 0) t = t1;
+                        else if (t2 > 0) t = t2;
+                    }
+                }
+                
+                if (t > 0) {
+                    const landX = ball.x + t * ball.xVelocity;
+                    const landY = ball.y + t * ball.yVelocity;
+                    const landInertialAngle = Math.atan2(landY, landX);
+                    const futureCylinderAngle = this.game.cylinderAngle + t * this.game.angVelocity;
+                    const predictedLandAngle = ((landInertialAngle - futureCylinderAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+                    
+                    // Check if predicted landing is in P2's territory (around 0)
+                    let diffP2 = predictedLandAngle;
+                    if (diffP2 > Math.PI) diffP2 -= 2 * Math.PI;
+                    if (diffP2 < -Math.PI) diffP2 += 2 * Math.PI;
+                    
+                    const landsInP2 = Math.abs(diffP2) <= this.fraction * Math.PI;
+                    
+                    if (landsInP2) {
+                        // Let it land to score! Get out of the way.
+                        targetAngle = Math.PI; 
+                    } else {
+                        // Intercept it with a "caress" offset.
+                        // We want to bounce it towards P2's territory (angle 0).
+                        // So we stand slightly on the opposite side of the ball.
+                        let diffToZero = predictedLandAngle;
+                        if (diffToZero > Math.PI) diffToZero -= 2 * Math.PI;
+                        if (diffToZero < -Math.PI) diffToZero += 2 * Math.PI;
+                        
+                        // PLAYER_RADIUS = 14, CYLINDER_RADIUS = 320. 
+                        // Base offset for an angled bounce towards 0.
+                        const caressOffset = 0.025;
+                        let desiredAngle;
+                        if (diffToZero > 0) {
+                            desiredAngle = predictedLandAngle + caressOffset;
+                        } else {
+                            desiredAngle = predictedLandAngle - caressOffset;
+                        }
+                        
+                        // Dynamic Sweep: we want the AI to hit the ball while moving forward.
+                        // We do this by making the target angle track towards the desiredAngle 
+                        // as the ball falls. The AI chases this moving target, building momentum, 
+                        // and arrives exactly at desiredAngle at the moment of impact.
+                        
+                        // Impact happens slightly before t=0 because the player's head sticks out (14px).
+                        // The ball's terminal velocity is ~10-15px/frame, so impact is ~1.5 frames early.
+                        const timeToImpact = Math.max(0, t - 1.5);
+                        
+                        // Sweep speed is 0.025 rad/frame (~8px/frame), capped at 0.3 rad away.
+                        const sweepOffset = Math.min(timeToImpact * 0.025, 0.3);
+                        
+                        if (diffToZero > 0) {
+                            targetAngle = desiredAngle + sweepOffset;
+                        } else {
+                            targetAngle = desiredAngle - sweepOffset;
+                        }
+                    }
+                } else {
+                    targetAngle = Math.PI; // Default home
+                }
+            }
+        }
+        
+        targetAngle = ((targetAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        let diff = targetAngle - myAngle;
+        if (diff > Math.PI) diff -= 2 * Math.PI;
+        if (diff < -Math.PI) diff += 2 * Math.PI;
+
+        // Deadzone to prevent jittering
+        let deadzone = 0.05;
+        if (this.difficulty === 'easy') deadzone = 0.15;
+        if (this.difficulty === 'hard') deadzone = 0.01;
+
+        this.keyLeftPressed = diff > deadzone;
+        this.keyRightPressed = diff < -deadzone;
+
+        const dx = ball.x - this.x;
+        const dy = ball.y - this.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Check if ball is approaching
+        const approaching = (dx * ball.xVelocity + dy * ball.yVelocity) < 0;
+
+        if (dist < this.jumpDistance && this.grounded && approaching) {
+            let shouldJump = true;
+
+            // Are we trying to hit it or just stand in its way?
+            // If it's falling in Player 1's territory (around Math.PI), we want to hit it back to Player 2's territory.
+            // If it's falling in Player 2's territory, we already moved away, but if we are here, we definitely shouldn't jump.
+            
+            let diffP2 = ballAngle;
+            if (diffP2 > Math.PI) diffP2 -= 2 * Math.PI;
+            if (diffP2 < -Math.PI) diffP2 += 2 * Math.PI;
+            const inP2Territory = Math.abs(diffP2) <= this.fraction * Math.PI;
+
+            if (inP2Territory) {
+                // Never jump if it's in our territory, we shouldn't even be here!
+                shouldJump = false;
+            } else {
+                // It's in P1's territory. Jumping helps us spike it into P2's territory.
+                if (this.difficulty === 'hard') {
+                    // Hard AI is perfectly strategic, and since jumping is risky, it simply never jumps.
+                    // It relies purely on its perfect positioning to bounce the ball.
+                    shouldJump = false; 
+                } else if (this.difficulty === 'medium') {
+                    if (Math.random() < 0.6) shouldJump = false; // 60% hesitation to avoid jumping too much
+                } else {
+                    if (Math.random() < 0.8) shouldJump = false; // 80% hesitation
+                }
+            }
+
+            if (this.difficulty === 'medium' && Math.sin(this.game.num / 10) > 0.8) {
+                shouldJump = false; // Reaction delay
+            }
+            
+            if (shouldJump) {
+                this.jump();
+            }
+        }
+    }
+
     update() {
+        if (this.isAI) {
+            this.updateAI();
+        }
         this.move();
     }
 }

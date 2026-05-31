@@ -51,11 +51,15 @@ export class Game {
         this.num = 1150; // Frame counter — starts here to sync camera behaviour
         this.startTime = null;
         this.highPerformance = true;
+        this.waitingForDifficulty = false;
+        if (this.isSinglePlayer === undefined) {
+            this.isSinglePlayer = false;
+        }
     }
 
     createObjects() {
         this.player1 = new Player(this, 1);
-        this.player2 = new Player(this, 2);
+        this.player2 = new Player(this, 2, this.isSinglePlayer, 'medium');
         this.ball = new Ball(this);
         this.setFractions();
 
@@ -77,10 +81,18 @@ export class Game {
         document.addEventListener('keyup', this._onKeyUp);
         this.canvas.addEventListener('click', () => {
             if (!this.gameStarted) {
+                this.isSinglePlayer = false;
+                this.waitingForDifficulty = false;
                 this.gameStarted = true;
+                this.updateDifficultyUI();
                 return;
             }
-            if (this.gameEnded) this.restart();
+            if (this.gameEnded) {
+                this.isSinglePlayer = false;
+                this.waitingForDifficulty = false;
+                this.restart(true);
+                this.updateDifficultyUI();
+            }
         });
 
         if (window.matchMedia('(pointer: coarse)').matches) {
@@ -98,11 +110,15 @@ export class Game {
                 (e) => {
                     e.preventDefault();
                     if (!this.gameStarted) {
+                        this.waitingForDifficulty = false;
                         this.gameStarted = true;
+                        this.updateDifficultyUI();
                         return;
                     }
                     if (this.gameEnded) {
-                        this.restart();
+                        this.waitingForDifficulty = false;
+                        this.restart(true);
+                        this.updateDifficultyUI();
                         return;
                     }
                     const player = playerNum === '1' ? this.player1 : this.player2;
@@ -126,16 +142,68 @@ export class Game {
     }
 
     onKeyDown(e) {
-        if (!this.gameStarted) {
-            this.gameStarted = true;
-            return;
-        }
-        if (this.gameEnded) {
-            this.restart();
+        const code = e.code;
+        const key = e.key;
+
+        if (this.waitingForDifficulty) {
+            let selectedDiff = null;
+            if (code === 'Digit1') selectedDiff = 'easy';
+            if (code === 'Digit2') selectedDiff = 'medium';
+            if (code === 'Digit3') selectedDiff = 'hard';
+
+            if (selectedDiff) {
+                this.isSinglePlayer = true;
+                this.player2 = new Player(this, 2, true, selectedDiff);
+                this.setFractions();
+                this.waitingForDifficulty = false;
+                this.gameStarted = true;
+                this.updateDifficultyUI();
+            } else if (key === 'Escape' || key === 'escape') {
+                this.waitingForDifficulty = false;
+            }
             return;
         }
 
-        const code = e.code;
+        if (!this.gameStarted) {
+            if (key === 's' || key === 'S') {
+                this.waitingForDifficulty = true;
+            } else {
+                this.isSinglePlayer = false;
+                this.gameStarted = true;
+                this.updateDifficultyUI();
+            }
+            return;
+        }
+        if (this.gameEnded) {
+            if (key === 's' || key === 'S') {
+                this.isSinglePlayer = true;
+                this.restart(false);
+                this.waitingForDifficulty = true;
+            } else {
+                this.isSinglePlayer = false;
+                this.restart(true);
+                this.updateDifficultyUI();
+            }
+            return;
+        }
+
+        if (this.isSinglePlayer) {
+            if (code === 'Digit1') {
+                this.player2.difficulty = 'easy';
+                this.player2.applyDifficulty();
+                this.updateDifficultyUI();
+            }
+            if (code === 'Digit2') {
+                this.player2.difficulty = 'medium';
+                this.player2.applyDifficulty();
+                this.updateDifficultyUI();
+            }
+            if (code === 'Digit3') {
+                this.player2.difficulty = 'hard';
+                this.player2.applyDifficulty();
+                this.updateDifficultyUI();
+            }
+        }
 
         // Player 1
         if (code === this.player1.keyLeft) this.player1.keyLeftPressed = true;
@@ -156,6 +224,35 @@ export class Game {
 
         if (code === this.player2.keyLeft) this.player2.keyLeftPressed = false;
         if (code === this.player2.keyRight) this.player2.keyRightPressed = false;
+    }
+
+    updateDifficultyUI() {
+        const diffEls = document.querySelectorAll('.diff-ui');
+        if (!this.isSinglePlayer) {
+            diffEls.forEach(el => el.style.display = 'none');
+            return;
+        }
+        
+        diffEls.forEach(el => {
+            if (el.classList.contains('controls-divider')) {
+                el.style.display = 'block';
+            } else {
+                el.style.display = 'flex';
+            }
+        });
+        
+        const diffText = document.getElementById('ai-difficulty');
+        if (diffText && this.player2) {
+            const diff = this.player2.difficulty;
+            diffText.textContent = diff;
+            if (diff === 'easy') {
+                diffText.style.color = '#2979ff'; // blue
+            } else if (diff === 'medium') {
+                diffText.style.color = '#ffd54f'; // yellow
+            } else if (diff === 'hard') {
+                diffText.style.color = '#ff4d4f'; // red
+            }
+        }
     }
 
     // ── Scoring ──────────────────────────────────────────────
@@ -356,7 +453,8 @@ export class Game {
         // Subtitle
         ctx.font = '13px system-ui, sans-serif';
         ctx.fillStyle = PALETTE.TEXT_MUTED;
-        ctx.fillText('press any key or click to restart', 0, 28);
+        const prompt = this.isTouchDevice ? 'tap to restart' : "press 's' for 1P, any other key for 2P";
+        ctx.fillText(prompt, 0, 28);
 
         ctx.restore();
     }
@@ -404,7 +502,11 @@ export class Game {
         ctx.textAlign = 'center';
         ctx.font = '13px system-ui, sans-serif';
         ctx.fillStyle = PALETTE.TEXT_MUTED;
-        const prompt = this.isTouchDevice ? 'tap to start' : 'press any key or click to start';
+        let prompt = this.isTouchDevice ? 'tap to start' : "press 's' for 1P, any other key for 2P";
+        if (this.waitingForDifficulty) {
+            prompt = "Select AI: 1 (Easy), 2 (Med), 3 (Hard)";
+            ctx.fillStyle = '#dadadb'; // Make it pop more when waiting
+        }
         ctx.fillText(prompt, 0, 6);
 
         ctx.restore();
@@ -412,13 +514,13 @@ export class Game {
 
     // ── Restart ──────────────────────────────────────────────
 
-    restart() {
+    restart(startGame = true) {
         // Reset transform to identity, then re-center
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
 
         this.initState();
-        this.gameStarted = true;
+        this.gameStarted = startGame;
         this.createObjects();
         this.lastFrameTime = 0;
         // rAF loop is already running, no need to restart it

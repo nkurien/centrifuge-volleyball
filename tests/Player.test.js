@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Player } from '../src/js/Player.js';
 import { createMockGame, installDomMocks } from './mocks.js';
 import {
@@ -415,6 +415,98 @@ describe('Player', () => {
 
             // Assert
             expect(player.fraction).toBeCloseTo(0.4);
+        });
+    });
+
+    // ── AI Logic ─────────────────────────────────────────────
+
+    describe('AI Logic', () => {
+        it('applies difficulty settings correctly', () => {
+            const { player } = createPlayer(2);
+            player.isAI = true;
+
+            player.difficulty = 'easy';
+            player.applyDifficulty();
+            expect(player.maxVelocity).toBe(PLAYER_MAX_VELOCITY * 0.35);
+
+            player.difficulty = 'medium';
+            player.applyDifficulty();
+            expect(player.maxVelocity).toBe(PLAYER_MAX_VELOCITY * 0.8);
+
+            player.difficulty = 'hard';
+            player.applyDifficulty();
+            expect(player.maxVelocity).toBe(PLAYER_MAX_VELOCITY * 1.5);
+            expect(player.r).toBe(230);
+            expect(player.g).toBe(40);
+            expect(player.b).toBe(60);
+        });
+
+        it('AI tracks the ball and presses appropriate keys (Easy)', () => {
+            const { player, game } = createPlayer(2);
+            player.isAI = true;
+            player.difficulty = 'easy';
+            
+            game.ball = {
+                angle: player.angle + 0.5, // ball is counter-clockwise
+                pauseNum: -1,
+                x: 0, y: 0, xVelocity: 0, yVelocity: 0
+            };
+            
+            player.updateAI();
+            expect(player.keyLeftPressed).toBe(true);
+            expect(player.keyRightPressed).toBe(false);
+
+            game.ball.angle = player.angle - 0.5; // ball is clockwise
+            player.updateAI();
+            expect(player.keyLeftPressed).toBe(false);
+            expect(player.keyRightPressed).toBe(true);
+        });
+
+        it('returns to Math.PI (opponent territory) when ball is falling into own territory', () => {
+            const { player, game } = createPlayer(2);
+            player.isAI = true;
+            player.difficulty = 'medium';
+            
+            // Place player away from Math.PI
+            player.angle = Math.PI + Math.PI / 4; 
+            
+            // Ball is falling into player's own territory (around 0)
+            game.ball = {
+                angle: 0,
+                pauseNum: -1,
+                x: 0, y: 0, xVelocity: 0, yVelocity: 0
+            };
+            
+            player.updateAI();
+            // It should move to Math.PI
+            expect(player.keyLeftPressed || player.keyRightPressed).toBe(true);
+        });
+
+        it('AI jumps when ball is approaching and close', () => {
+            const { player, game } = createPlayer(2);
+            player.isAI = true;
+            player.difficulty = 'medium';
+            player.grounded = true;
+
+            const jumpDist = PLAYER_RADIUS * 4.0;
+            player.x = 100;
+            player.y = 100;
+            game.num = 0; // Ensure Math.sin(game.num / 10) is 0 to avoid human error skipping the jump
+            
+            game.ball = {
+                x: 100 - jumpDist * 0.5, 
+                y: 100,
+                xVelocity: 1, // Moving towards player.x (100)
+                yVelocity: 0,
+                angle: Math.PI, // Place ball in P1 territory so AI jumps to attack
+                pauseNum: -1
+            };
+
+            const jumpSpy = vi.spyOn(player, 'jump');
+            const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.99); // Force shouldJump = true
+            player.updateAI();
+            expect(jumpSpy).toHaveBeenCalled();
+            randomSpy.mockRestore();
         });
     });
 
